@@ -32,3 +32,22 @@ Todo el stack corre en free tier.
 - `npm test` — corre la suite de tests
 - `npm run typecheck` — chequeo de tipos (`tsc --noEmit`)
 - `npm run verify` — corre lint, typecheck, tests y build en orden
+
+## Credenciales de fuentes opcionales
+
+Algunas fuentes requieren credenciales (ver `.env.example`, sección _Opcionales_).
+Si faltan, esa fuente queda inerte pero la app arranca igual.
+
+### `FREELANCER_OAUTH_TOKEN` — Freelancer.com
+
+La fuente Freelancer.com usa la API oficial (gratis) de proyectos activos, que
+exige un token OAuth personal de la cuenta del dueño. Un token de solo lectura
+alcanza para la búsqueda. Para obtenerlo:
+
+1. Iniciá sesión en [freelancer.com](https://www.freelancer.com) con la cuenta del dueño.
+2. Entrá a la sección de desarrolladores / API: <https://developers.freelancer.com>.
+3. Creá una aplicación y generá un **OAuth access token** personal.
+4. Pegá el token en `FREELANCER_OAUTH_TOKEN` en tu `.env.local`.
+
+El token viaja en el header `freelancer-oauth-v1` de cada request. Sin él, la
+fuente `freelancer` devuelve `[]` sin error.
