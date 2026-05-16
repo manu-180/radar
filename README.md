@@ -243,7 +243,7 @@ tabla `sources` con su `enabled`, su `config` (JSON validado contra el
 | `freelancer` | Freelancer.com| ✅        | habilitada| `FREELANCER_OAUTH_TOKEN` |
 | `rss`        | Feeds RSS     | ✅        | habilitada| —             |
 | `telegram`   | Telegram      | ❌ pendiente | deshabilitada | `TELEGRAM_*` |
-| `discord`    | Discord       | ❌ pendiente | deshabilitada | `DISCORD_BOT_TOKEN` |
+| `discord`    | Discord       | ✅        | habilitada| `DISCORD_BOT_TOKEN` |
 | `workana`    | Workana       | ❌ paso 34   | —          | `SCRAPER_API_KEY` |
 
 Hoy hay **5 fuentes activas** con adaptador. `telegram` y `discord` ya tienen su
@@ -435,6 +435,7 @@ En **Configuración** se ajustan:
 | `npm run eval`      | Evaluación del clasificador (ver §12) — **hace llamadas reales a Claude** |
 | `npx tsx scripts/telegram-login.ts` | Genera el `TELEGRAM_SESSION` — setup manual único de Telegram (ver §4) |
 | `npx tsx scripts/test-discord.ts` | Verifica el bot de Discord (`GET /users/@me`) — setup manual único de Discord (ver §4) |
+| `npx tsx scripts/test-discord-adapter.ts` | Corre el adaptador de Discord con el config real e imprime items y cursor |
 
 > **Gotcha de build local:** `next build` falla si `NODE_ENV=development` está
 > forzado en el entorno (error de prerender en `/_global-error`,

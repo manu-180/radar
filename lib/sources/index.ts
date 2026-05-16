@@ -14,6 +14,7 @@ import "@/lib/sources/bluesky";
 import "@/lib/sources/freelancer";
 import "@/lib/sources/rss";
 import "@/lib/sources/telegram";
+import "@/lib/sources/discord";
 
 export { registerSource, getSource, listSources } from "@/lib/sources/registry";
 export type {
