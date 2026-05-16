@@ -151,6 +151,37 @@ alcanza:
 
 El token viaja en el header `freelancer-oauth-v1` de cada request.
 
+#### Telegram — cómo obtener las credenciales
+
+Telegram no expone una API HTTP simple para leer canales públicos arbitrarios:
+hay que hablar el protocolo **MTProto** con un cliente autenticado (la librería
+GramJS, paquete `telegram`). Eso exige una **sesión de usuario** que se genera
+una sola vez, de forma interactiva. Setup manual único:
+
+1. **App de Telegram.** Entrá a <https://my.telegram.org> con la cuenta del
+   dueño, abrí **API development tools** y creá una app. Telegram te da un
+   **`api_id`** (numérico) y un **`api_hash`**.
+2. **Generar la sesión.** Corré una vez el script de login:
+
+   ```bash
+   npx tsx scripts/telegram-login.ts
+   ```
+
+   El script toma `TELEGRAM_API_ID` / `TELEGRAM_API_HASH` de `.env.local` si ya
+   están; si no, te los pide por la terminal. Después pide el **teléfono** (en
+   formato internacional, ej. `+5491112345678`) y el **código** que Telegram
+   manda a la app (y la contraseña de verificación en dos pasos, si la cuenta la
+   tiene).
+3. **Guardar el resultado.** Al terminar, el script imprime una línea
+   `TELEGRAM_SESSION=...`. Copiá ese valor —junto con `TELEGRAM_API_ID` y
+   `TELEGRAM_API_HASH`— a `.env.local` y a Vercel (entorno Production).
+
+El `TELEGRAM_SESSION` es un secreto: da acceso completo a la cuenta de Telegram.
+No lo subas al repo.
+
+> El adaptador de Telegram llega en un paso posterior. Hasta entonces —o si las
+> tres variables faltan— la fuente queda inerte: devuelve `[]` sin romper nada.
+
 ---
 
 ## 5. Las fuentes
@@ -358,6 +389,7 @@ En **Configuración** se ajustan:
 | `npm run lint`      | ESLint                                                         |
 | `npm run verify`    | Lint → typecheck → tests → build, en orden (la misma secuencia del CI) |
 | `npm run eval`      | Evaluación del clasificador (ver §12) — **hace llamadas reales a Claude** |
+| `npx tsx scripts/telegram-login.ts` | Genera el `TELEGRAM_SESSION` — setup manual único de Telegram (ver §4) |
 
 > **Gotcha de build local:** `next build` falla si `NODE_ENV=development` está
 > forzado en el entorno (error de prerender en `/_global-error`,
