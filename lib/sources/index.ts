@@ -13,6 +13,7 @@ import "@/lib/sources/reddit";
 import "@/lib/sources/bluesky";
 import "@/lib/sources/freelancer";
 import "@/lib/sources/rss";
+import "@/lib/sources/telegram";
 
 export { registerSource, getSource, listSources } from "@/lib/sources/registry";
 export type {
