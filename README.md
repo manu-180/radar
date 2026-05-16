@@ -33,6 +33,17 @@ Todo el stack corre en free tier.
 - `npm run typecheck` — chequeo de tipos (`tsc --noEmit`)
 - `npm run verify` — corre lint, typecheck, tests y build en orden
 
+## Integración continua (CI)
+
+Si el repo está en GitHub, el workflow `.github/workflows/ci.yml` corre
+automáticamente en **cada `push` y cada `pull_request`**: ejecuta lint →
+typecheck → tests → build, en ese orden, y falla si cualquiera falla. Es la
+misma secuencia que `npm run verify` localmente.
+
+El CI **no** corre `npm run eval` (la evaluación del clasificador): esa hace
+llamadas reales a Claude, cuesta dinero y requiere `ANTHROPIC_API_KEY`. Los
+tests unitarios no pegan a APIs externas, así que el CI no necesita secretos.
+
 ## Scheduling autónomo
 
 El sistema corre solo, sin intervención humana: un cron dispara cada 20 min las
