@@ -226,6 +226,23 @@ falla: avisa que el setup está pendiente.
 > El adaptador de Discord llega en un paso posterior. Hasta entonces —o si falta
 > `DISCORD_BOT_TOKEN`— la fuente queda inerte: devuelve `[]` sin romper nada.
 
+#### `SCRAPER_API_KEY` — el servicio de scraping de Workana
+
+La fuente Workana (paso 34, **opcional**) es la única con costo y fragilidad
+reales — ver [§5 Workana](#workana--la-fuente-con-costo-y-fragilidad). Workana no
+tiene API pública y está detrás de Cloudflare con anti-bot moderno: no se la
+puede bajar con un `fetch` directo, hay que pasar por un **servicio de scraping
+pago**. El adaptador usa el formato de **ScraperAPI**
+(<https://www.scraperapi.com>), que resuelve Cloudflare y el render de JS y
+devuelve el HTML ya listo:
+
+1. Creá una cuenta en ScraperAPI y copiá tu API key.
+2. Pegala en `SCRAPER_API_KEY` en `.env.local` (y en Vercel, entorno Production).
+3. Habilitá la fuente `workana` desde el panel **solo** cuando confirmes que el
+   scraping funciona y aceptes el costo (~US$30–50/mes).
+
+Sin `SCRAPER_API_KEY` la fuente queda inerte: devuelve `[]` sin romper nada.
+
 ---
 
 ## 5. Las fuentes
@@ -244,11 +261,12 @@ tabla `sources` con su `enabled`, su `config` (JSON validado contra el
 | `rss`        | Feeds RSS     | ✅        | habilitada| —             |
 | `telegram`   | Telegram      | ❌ pendiente | deshabilitada | `TELEGRAM_*` |
 | `discord`    | Discord       | ✅        | habilitada| `DISCORD_BOT_TOKEN` |
-| `workana`    | Workana       | ❌ paso 34   | —          | `SCRAPER_API_KEY` |
+| `workana`    | Workana       | ✅        | **deshabilitada** | `SCRAPER_API_KEY` |
 
-Hoy hay **5 fuentes activas** con adaptador. `telegram` y `discord` ya tienen su
-fila en `sources` pero todavía no su adaptador; `workana` se suma en el paso 34.
-La fuente `rss` por sí sola cubre N plataformas (ver [§6](#6-feeds-rss-sin-código)).
+`telegram` tiene su fila en `sources` pero todavía no su adaptador. `workana` ya
+tiene adaptador (paso 34) pero arranca **deshabilitada** a propósito — ver
+[Workana](#workana--la-fuente-con-costo-y-fragilidad) más abajo. La fuente `rss`
+por sí sola cubre N plataformas (ver [§6](#6-feeds-rss-sin-código)).
 
 ### Cómo agregar una fuente nueva
 
@@ -282,6 +300,48 @@ ningún archivo existente. Cuatro pasos:
 A partir del próximo poll, `/api/cron/dispatch` la incluye en el fan-out. Tomá
 cualquier adaptador existente (`lib/sources/hackernews.ts` es el más simple) como
 plantilla.
+
+### Workana — la fuente con costo y fragilidad
+
+[Workana](https://www.workana.com) es la bolsa freelance más relevante para el
+mercado **argentino/LatAm**: cada proyecto listado es alguien que explícitamente
+quiere contratar. Pero es la **única fuente del sistema con costo y fragilidad
+reales**, y por eso se trata aparte.
+
+**El problema.** Workana no tiene API pública y está protegida por Cloudflare con
+anti-bot moderno: un `fetch` directo no la baja. Había dos caminos posibles:
+
+- **(A) Servicio de scraping pago** — confiable, pero cuesta ~US$30–50/mes.
+- **(B) Navegador headless propio** (Playwright/Camoufox) — sin costo de
+  servicio, pero frágil en serverless, pesado, y se rompe con cada actualización
+  del anti-bot de Workana.
+
+**Camino elegido: (A), el servicio de scraping pago.** El adaptador
+(`lib/sources/workana.ts`) baja cada URL de búsqueda a través de **ScraperAPI**
+(`SCRAPER_API_KEY`), que resuelve Cloudflare y el render de JS y devuelve el HTML
+ya listo; el adaptador parsea ese HTML. Es el camino recomendado por el paso 34:
+un navegador headless propio sería aún más frágil de mantener en Vercel.
+
+**La fragilidad persiste.** Aun con el servicio pago, el parseo del HTML de los
+listados se rompe cada vez que Workana cambia su markup. La función
+`parseProjects` de `lib/sources/workana.ts` es la parte frágil y está marcada
+como tal: si Workana deja de traer proyectos, ahí es donde hay que ajustar los
+selectores. El resto del sistema (las demás fuentes) no tiene este problema.
+
+**Aislamiento.** Como Workana es la fuente más propensa a romperse, su adaptador
+aísla los fallos estrictamente: cada URL de búsqueda se baja y parsea por
+separado, los errores se loguean y se siguen, y un fallo total solo marca el
+`run` de `workana` como `error` — nunca tumba el poll de las otras fuentes.
+
+**Arranca deshabilitada.** La fila `workana` de `sources` se crea con
+`enabled = false`. Se activa **a mano desde el panel** (Configuración → Fuentes)
+solo cuando el scraping esté funcionando y el dueño acepte el costo mensual. Y
+sin `SCRAPER_API_KEY` la fuente queda inerte de todos modos: devuelve `[]` sin
+romper nada. Para verificar el adaptador:
+
+```bash
+npx tsx scripts/test-workana.ts
+```
 
 ---
 
@@ -436,6 +496,7 @@ En **Configuración** se ajustan:
 | `npx tsx scripts/telegram-login.ts` | Genera el `TELEGRAM_SESSION` — setup manual único de Telegram (ver §4) |
 | `npx tsx scripts/test-discord.ts` | Verifica el bot de Discord (`GET /users/@me`) — setup manual único de Discord (ver §4) |
 | `npx tsx scripts/test-discord-adapter.ts` | Corre el adaptador de Discord con el config real e imprime items y cursor |
+| `npx tsx scripts/test-workana.ts` | Corre el adaptador de Workana con el config real — sin `SCRAPER_API_KEY` confirma que queda inerte (ver §5 Workana) |
 
 > **Gotcha de build local:** `next build` falla si `NODE_ENV=development` está
 > forzado en el entorno (error de prerender en `/_global-error`,

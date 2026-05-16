@@ -15,6 +15,7 @@ import "@/lib/sources/freelancer";
 import "@/lib/sources/rss";
 import "@/lib/sources/telegram";
 import "@/lib/sources/discord";
+import "@/lib/sources/workana";
 
 export { registerSource, getSource, listSources } from "@/lib/sources/registry";
 export type {
