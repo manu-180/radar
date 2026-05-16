@@ -1,0 +1,16 @@
+/**
+ * Punto de entrada del subsistema de fuentes.
+ *
+ * Re-exporta el registry y los tipos del patrón de adaptadores. Más adelante,
+ * este módulo también importará cada adaptador concreto (Hacker News, Reddit,
+ * etc.) para forzar su registro como efecto secundario del import. Por ahora
+ * no hay adaptadores: solo expone el registry.
+ */
+
+export { registerSource, getSource, listSources } from "@/lib/sources/registry";
+export type {
+  RawItem,
+  SourceCursor,
+  FetchResult,
+  SourceAdapter,
+} from "@/lib/sources/types";
