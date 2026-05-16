@@ -9,6 +9,7 @@
 
 // Efecto secundario: cada import registra su adaptador en el registry.
 import "@/lib/sources/hackernews";
+import "@/lib/sources/reddit";
 
 export { registerSource, getSource, listSources } from "@/lib/sources/registry";
 export type {
