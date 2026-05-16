@@ -52,6 +52,7 @@ texto plano en `cron.job`.
 | `lead-detector-poll`    | `*/20 * * * *`   | `/api/cron/dispatch`  |
 | `lead-detector-process` | `5-59/20 * * * *`| `/api/process`        |
 | `lead-detector-notify`  | `12-59/20 * * * *`| `/api/notify`        |
+| `lead-detector-health`  | `30 * * * *`     | `/api/health/check`   |
 
 Los jobs apuntan a la URL base definida en la variable `app_url` de
 `supabase/cron.sql` (la misma idea que `APP_URL`). Hoy es `http://localhost:3000`;
@@ -60,6 +61,31 @@ URL de producción de Vercel.
 
 Las extensiones `pg_cron` y `pg_net` se habilitan en la migración
 `0004_cron_extensions`.
+
+## Monitoreo de salud
+
+Un sistema autónomo necesita un "monitoreo del monitor": si deja de funcionar,
+nadie lo está mirando. El monitoreo tiene **tres capas**, cada una cubre lo que
+la anterior no puede ver:
+
+1. **Self-check interno** — `lead-detector-health` (cron, cada hora) dispara
+   `POST /api/health/check`, que evalúa fallas *parciales*: no hubo polls
+   recientes, una fuente acumula polls fallidos, la cola de IA se estancó, las
+   notificaciones fallan, o el propio `pg_cron` tuvo corridas fallidas (lo lee
+   de `cron.job_run_details` vía el RPC `health_cron_failures`). Si algo está
+   roto, manda un WhatsApp al dueño. Tiene **anti-spam**: guarda en `settings`
+   (`health_last_alert`) la firma del problema y sólo re-avisa si la firma
+   cambia o pasa un cooldown de 6 h; al recuperarse avisa una vez y limpia la
+   firma.
+2. **Lectura del cron** — la capa 1 cubre que el cron de Postgres falle, algo
+   que el cron mismo no puede reportar porque no llega a la app.
+3. **Monitor externo de uptime** — cubre la **caída total**: si Vercel está
+   abajo, las capas 1 y 2 tampoco corren. Hay que dar de alta un monitor de
+   uptime gratuito (por ejemplo [UptimeRobot](https://uptimerobot.com),
+   [Better Stack](https://betterstack.com) o [Cron-job.org](https://cron-job.org))
+   que haga un ping HTTP a **`${APP_URL}/api/health`** cada ~5 min. Ese endpoint
+   es público (sin secreto sólo devuelve `{ status }`) y responde **503** cuando
+   el sistema está caído, así que el monitor alerta por mail/Telegram solo.
 
 ## Credenciales de fuentes opcionales
 

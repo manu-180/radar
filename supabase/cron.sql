@@ -56,7 +56,8 @@ begin
   where jobname in (
     'lead-detector-poll',
     'lead-detector-process',
-    'lead-detector-notify'
+    'lead-detector-notify',
+    'lead-detector-health'
   );
 
   -- 2) Polling — minutos :00, :20, :40. Dispara el dispatcher, que abre una
@@ -81,5 +82,16 @@ begin
     'lead-detector-notify',
     '12-59/20 * * * *',
     format(cmd_template, app_url || '/api/notify')
+  );
+
+  -- 5) Health-check — minuto :30 de cada hora. El "monitoreo del monitor":
+  --    evalúa polling, fuentes, backlog de IA, notificaciones y el propio cron,
+  --    y avisa por WhatsApp si algo está roto. Frecuencia horaria —no cada
+  --    20 min— porque su anti-spam ya regula los avisos y una falla no necesita
+  --    detectarse antes.
+  perform cron.schedule(
+    'lead-detector-health',
+    '30 * * * *',
+    format(cmd_template, app_url || '/api/health/check')
   );
 end $$;
