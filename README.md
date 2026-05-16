@@ -33,6 +33,34 @@ Todo el stack corre en free tier.
 - `npm run typecheck` — chequeo de tipos (`tsc --noEmit`)
 - `npm run verify` — corre lint, typecheck, tests y build en orden
 
+## Scheduling autónomo
+
+El sistema corre solo, sin intervención humana: un cron dispara cada 20 min las
+tres etapas del pipeline. Se usa **Supabase Cron** (`pg_cron`), no Vercel Cron —
+el plan Hobby de Vercel solo permite frecuencia diaria, inservible para sondear
+cada 20 min. `pg_cron` corre dentro de Postgres, soporta frecuencia sub-minuto y
+dispara HTTP con `pg_net`. Gratis.
+
+Los jobs se definen en `supabase/cron.sql`, un script **idempotente** (desagenda
+y vuelve a agendar): se puede re-correr sin duplicar jobs. Cada job hace un
+`net.http_post` a una ruta `/api/...`, con el header `x-cron-secret` resuelto en
+cada corrida desde **Supabase Vault** (secreto `cron_secret`) — nunca queda en
+texto plano en `cron.job`.
+
+| Job                     | Cron             | Ruta                  |
+| ----------------------- | ---------------- | --------------------- |
+| `lead-detector-poll`    | `*/20 * * * *`   | `/api/cron/dispatch`  |
+| `lead-detector-process` | `5-59/20 * * * *`| `/api/process`        |
+| `lead-detector-notify`  | `12-59/20 * * * *`| `/api/notify`        |
+
+Los jobs apuntan a la URL base definida en la variable `app_url` de
+`supabase/cron.sql` (la misma idea que `APP_URL`). Hoy es `http://localhost:3000`;
+en el paso de deploy (33) se **re-corre `cron.sql`** cambiando `app_url` por la
+URL de producción de Vercel.
+
+Las extensiones `pg_cron` y `pg_net` se habilitan en la migración
+`0004_cron_extensions`.
+
 ## Credenciales de fuentes opcionales
 
 Algunas fuentes requieren credenciales (ver `.env.example`, sección _Opcionales_).
