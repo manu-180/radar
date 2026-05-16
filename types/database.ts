@@ -276,7 +276,46 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      claim_pending_leads: {
+        Args: { batch_size: number }
+        Returns: {
+          author: string | null
+          body: string | null
+          category: string | null
+          content_hash: string
+          external_id: string | null
+          feedback: string | null
+          feedback_at: string | null
+          first_seen_at: string
+          id: number
+          input_tokens: number | null
+          lang: string | null
+          last_seen_at: string
+          llm_attempts: number
+          llm_cost_usd: number | null
+          llm_error: string | null
+          llm_model: string | null
+          llm_status: string
+          notified_at: string | null
+          notify_status: string
+          output_tokens: number | null
+          posted_at: string | null
+          prefilter_matched: string[] | null
+          raw: Json | null
+          reason: string | null
+          score: number | null
+          source: string
+          suggested_reply: string | null
+          title: string | null
+          url: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "leads"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
     }
     Enums: {
       [_ in never]: never
