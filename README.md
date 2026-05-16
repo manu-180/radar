@@ -182,6 +182,50 @@ No lo subas al repo.
 > El adaptador de Telegram llega en un paso posterior. Hasta entonces —o si las
 > tres variables faltan— la fuente queda inerte: devuelve `[]` sin romper nada.
 
+#### Discord — cómo crear el bot y obtener el token
+
+Discord no deja leer canales con una API anónima: hay que registrar un **bot**,
+invitarlo a cada servidor y darle permiso de lectura. El adaptador (paso
+posterior) usa la **API REST por polling**, no una conexión gateway persistente
+—encaja con el modelo de polling del sistema y no necesita un proceso siempre
+activo—. Setup manual único:
+
+1. **Crear la aplicación y el bot.** Entrá a
+   <https://discord.com/developers/applications> con la cuenta del dueño,
+   **New Application**, ponele un nombre. En la pestaña **Bot**, creá el bot.
+2. **Copiar el token.** En la pestaña **Bot**, **Reset Token** y copiá el valor
+   → variable `DISCORD_BOT_TOKEN` (en `.env.local` y en Vercel, entorno
+   Production). El token solo se muestra una vez; si lo perdés, reseteálo de
+   nuevo. Es un secreto: no lo subas al repo.
+3. **Activar el "Message Content Intent".** En la misma pestaña **Bot**, bajá a
+   **Privileged Gateway Intents** y activá **Message Content Intent**. Es un
+   intent privilegiado y es **obligatorio**: sin él, la API devuelve el
+   contenido de los mensajes vacío y la fuente no detecta nada.
+4. **Invitar el bot a cada servidor.** En **OAuth2 → URL Generator**, marcá el
+   scope **`bot`** y los permisos **View Channels** y **Read Message History**
+   (alcanza con leer; el bot no escribe). Copiá la URL generada, abrila y elegí
+   el servidor objetivo. Para aprobar la invitación tenés que ser **admin** de
+   ese servidor; si no lo sos, pasale la URL a un admin para que la apruebe.
+   Repetí por cada servidor que quieras monitorear.
+5. **Copiar los IDs de canal.** En Discord, **Ajustes de usuario → Avanzado →
+   Modo desarrollador** (activado). Después, clic derecho sobre cada canal a
+   monitorear → **Copiar ID del canal**, y clic derecho sobre el servidor →
+   **Copiar ID del servidor**. Esos IDs van en el `config` de la fuente
+   `discord` (lo usa el adaptador del paso siguiente).
+
+Con `DISCORD_BOT_TOKEN` seteado, verificá el setup con:
+
+```bash
+npx tsx scripts/test-discord.ts
+```
+
+El script hace un `GET /users/@me` contra la API de Discord y confirma que el
+token es válido y que el bot responde (imprime su nombre e ID). Sin el token, no
+falla: avisa que el setup está pendiente.
+
+> El adaptador de Discord llega en un paso posterior. Hasta entonces —o si falta
+> `DISCORD_BOT_TOKEN`— la fuente queda inerte: devuelve `[]` sin romper nada.
+
 ---
 
 ## 5. Las fuentes
@@ -390,6 +434,7 @@ En **Configuración** se ajustan:
 | `npm run verify`    | Lint → typecheck → tests → build, en orden (la misma secuencia del CI) |
 | `npm run eval`      | Evaluación del clasificador (ver §12) — **hace llamadas reales a Claude** |
 | `npx tsx scripts/telegram-login.ts` | Genera el `TELEGRAM_SESSION` — setup manual único de Telegram (ver §4) |
+| `npx tsx scripts/test-discord.ts` | Verifica el bot de Discord (`GET /users/@me`) — setup manual único de Discord (ver §4) |
 
 > **Gotcha de build local:** `next build` falla si `NODE_ENV=development` está
 > forzado en el entorno (error de prerender en `/_global-error`,
