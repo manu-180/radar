@@ -31,7 +31,7 @@ siguiente directamente: se comunican por el estado en la base (las colas
    POST /api/poll/<slug>           │ → `done` + categoría    │ → WhatsApp al
         │ adapter.fetchItems()     │ + score + llm_cost_usd  │   dueño
         │ pre-filtro keywords      ▼                         ▼
-        ▼                     tabla `leads`             Wassenger API
+        ▼                     tabla `leads`             Evolution API
    tabla `leads` (`pending`)   (cola notify)         tabla `notifications`
 ```
 
@@ -52,7 +52,7 @@ re-dispara a sí misma para drenar el backlog sin esperar al cron.
 
 **Etapa 3 — Notificación.** `POST /api/notify` reclama los leads ya clasificados
 que cumplen la regla de notificación (`claim_leads_to_notify`), arma el mensaje y
-lo manda por WhatsApp vía Wassenger, con una espera de 3–5 s entre envíos. Un
+lo manda por WhatsApp vía Evolution API, con una espera de 3–5 s entre envíos. Un
 tope por corrida (`max_notifications_per_run`) evita ráfagas.
 
 **Monitoreo.** Tres capas — ver [§9](#9-monitoreo-de-salud).
@@ -72,7 +72,7 @@ del sistema.
 | `notifications` | Registro de cada WhatsApp enviado (o fallado)                       |
 | `settings`      | Config manejada por datos (regla de notificación, perfil, etc.)     |
 
-El esquema se versiona en `supabase/migrations/` (`0001`–`0005`).
+El esquema se versiona en `supabase/migrations/` (`0001`–`0007`).
 
 ---
 
@@ -81,7 +81,7 @@ El esquema se versiona en `supabase/migrations/` (`0001`–`0005`).
 - **Next.js 16** (App Router, TypeScript) — frontend y API routes
 - **Supabase** — Postgres + `pg_cron`/`pg_net` para el scheduling
 - **Claude API** (`@anthropic-ai/sdk`) — clasificación de leads (Haiku 4.5 / Sonnet 4.6)
-- **Wassenger** — notificaciones por WhatsApp
+- **Evolution API** — notificaciones por WhatsApp (instancia propia de "senders")
 - **Vercel** — hosting de la app y de las rutas API
 - **Vitest** + **tsx** — tests unitarios y scripts
 
@@ -115,8 +115,9 @@ ellas queda inerte, pero la app arranca igual.
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY`  | Anon key de Supabase (pública)                                      |
 | `SUPABASE_SERVICE_ROLE_KEY`      | Service role key — bypassa RLS. **Secreta, solo servidor**          |
 | `ANTHROPIC_API_KEY`              | API key de Claude                                                   |
-| `WASSENGER_API_KEY`              | API key de Wassenger (envío de WhatsApp)                            |
-| `WASSENGER_WEBHOOK_SECRET`       | Valida los webhooks entrantes de Wassenger                          |
+| `EVOLUTION_API_URL`              | URL base del servidor de Evolution API                              |
+| `EVOLUTION_API_KEY`              | API key de Evolution API                                            |
+| `EVOLUTION_INSTANCE`             | Instancia/sender de Evolution desde la que se manda (debe estar conectada) |
 | `OWNER_WHATSAPP`                 | Teléfono del dueño en formato E.164 (`+5491112345678`) — recibe los avisos |
 | `CRON_SECRET`                    | Protege las rutas de cron. String aleatorio, mín. 16 chars          |
 | `AUTH_SECRET`                    | Firma la sesión del dashboard. String aleatorio, mín. 16 chars      |
@@ -179,8 +180,10 @@ una sola vez, de forma interactiva. Setup manual único:
 El `TELEGRAM_SESSION` es un secreto: da acceso completo a la cuenta de Telegram.
 No lo subas al repo.
 
-> El adaptador de Telegram llega en un paso posterior. Hasta entonces —o si las
-> tres variables faltan— la fuente queda inerte: devuelve `[]` sin romper nada.
+> Si las tres variables faltan, la fuente queda inerte: el adaptador devuelve
+> `[]` sin romper nada. La fuente arranca **deshabilitada** y se activa desde el
+> panel (Configuración → Fuentes) una vez generada la sesión y cargados los
+> canales en su `config`.
 
 #### Discord — cómo crear el bot y obtener el token
 
@@ -223,8 +226,8 @@ El script hace un `GET /users/@me` contra la API de Discord y confirma que el
 token es válido y que el bot responde (imprime su nombre e ID). Sin el token, no
 falla: avisa que el setup está pendiente.
 
-> El adaptador de Discord llega en un paso posterior. Hasta entonces —o si falta
-> `DISCORD_BOT_TOKEN`— la fuente queda inerte: devuelve `[]` sin romper nada.
+> Si falta `DISCORD_BOT_TOKEN`, la fuente queda inerte: el adaptador devuelve
+> `[]` sin romper nada.
 
 #### `SCRAPER_API_KEY` — el servicio de scraping de Workana
 
@@ -259,14 +262,15 @@ tabla `sources` con su `enabled`, su `config` (JSON validado contra el
 | `bluesky`    | Bluesky       | ✅        | habilitada| —             |
 | `freelancer` | Freelancer.com| ✅        | habilitada| `FREELANCER_OAUTH_TOKEN` |
 | `rss`        | Feeds RSS     | ✅        | habilitada| —             |
-| `telegram`   | Telegram      | ❌ pendiente | deshabilitada | `TELEGRAM_*` |
+| `telegram`   | Telegram      | ✅        | **deshabilitada** | `TELEGRAM_*` |
 | `discord`    | Discord       | ✅        | habilitada| `DISCORD_BOT_TOKEN` |
 | `workana`    | Workana       | ✅        | **deshabilitada** | `SCRAPER_API_KEY` |
 
-`telegram` tiene su fila en `sources` pero todavía no su adaptador. `workana` ya
-tiene adaptador (paso 34) pero arranca **deshabilitada** a propósito — ver
-[Workana](#workana--la-fuente-con-costo-y-fragilidad) más abajo. La fuente `rss`
-por sí sola cubre N plataformas (ver [§6](#6-feeds-rss-sin-código)).
+`telegram` ya tiene adaptador pero arranca **deshabilitada**: necesita la sesión
+MTProto del setup manual único (ver [§4](#4-variables-de-entorno)). `workana`
+también tiene adaptador (paso 34) pero arranca **deshabilitada** a propósito —
+ver [Workana](#workana--la-fuente-con-costo-y-fragilidad) más abajo. La fuente
+`rss` por sí sola cubre N plataformas (ver [§6](#6-feeds-rss-sin-código)).
 
 ### Cómo agregar una fuente nueva
 
@@ -414,7 +418,7 @@ Las extensiones `pg_cron` y `pg_net` se habilitan en la migración
 | **Claude API**        | **US$10–15 / mes**  | Pago por uso (Haiku + Sonnet) |
 | Supabase              | US$0                | Free tier                     |
 | Vercel                | US$0                | Hobby                         |
-| Wassenger             | según plan WhatsApp | —                             |
+| Evolution API         | US$0 incremental    | Reusa la infra de agente-busca-clientes |
 
 El único costo variable real es la API de Claude. El grueso de los leads se
 clasifica con **Haiku 4.5** (barato); solo los ambiguos escalan a **Sonnet 4.6**.
@@ -579,7 +583,7 @@ from runs order by started_at desc limit 20;
 | No aparecen `runs` nuevos                 | El cron no llega a la app. Verificá `app_url` en `cron.sql` y **re-corré el script**. Revisá `cron.job_run_details`. |
 | Una fuente acumula polls `error`          | Mirá el `error` de esa fuente en `runs`; suele ser credencial faltante o config inválido. |
 | Leads se quedan en `pending`              | `process` no drena. Revisá `runs` de `kind='process'`; típico: `ANTHROPIC_API_KEY` inválida o sin crédito. |
-| WhatsApps no llegan                       | Revisá `notifications` (`status='failed'` + `error`) y `WASSENGER_API_KEY` / `OWNER_WHATSAPP`. |
+| WhatsApps no llegan                       | Revisá `notifications` (`status='failed'` + `error`); lo más común es la instancia `EVOLUTION_INSTANCE` desconectada — reconectá el QR del sender. |
 | Las rutas API devuelven 401               | El `x-cron-secret` no coincide. `CRON_SECRET` (env de Vercel) debe ser igual al secreto `cron_secret` del Vault. |
 | La app no arranca                         | `lib/env.ts` rechazó el entorno: el error nombra la variable faltante o inválida. |
 
@@ -599,21 +603,24 @@ corrida.
 >   no existe una `APP_URL` de producción.
 > - **Faltan secretos reales** — `.env.vercel` tiene placeholders
 >   (`REEMPLAZAR_*`) para `SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`,
->   `WASSENGER_API_KEY`, `OWNER_WHATSAPP` y `APP_URL`. Son credenciales reales
->   que debe cargar el dueño.
+>   las tres `EVOLUTION_*`, `OWNER_WHATSAPP` y `APP_URL`. Son credenciales
+>   reales que debe cargar el dueño.
 > - **El cron apunta a `localhost`** — los 4 jobs de `pg_cron` en Supabase están
 >   `active` pero su `app_url` sigue siendo `http://localhost:3000`; por eso
 >   `runs` está vacía (0 corridas) pese a que el cron dispara cada 20 min.
 >
 > **Para completar la puesta en producción:**
 >
-> 1. Crear el proyecto en Vercel y deployar el repo.
-> 2. Cargar en Vercel (entorno Production) las variables de `.env.vercel`,
+> 1. Aplicar en Supabase las migraciones nuevas `0007_resilient_claims.sql` y
+>    `0008_rename_provider_message_id.sql` (con el `execute_sql` del MCP de
+>    Supabase, o desde el SQL Editor). Son idempotentes.
+> 2. Crear el proyecto en Vercel y deployar el repo.
+> 3. Cargar en Vercel (entorno Production) las variables de `.env.vercel`,
 >    reemplazando los `REEMPLAZAR_*` por los valores reales y `APP_URL` por la
 >    URL de producción definitiva.
-> 3. Editar `app_url` en `supabase/cron.sql` con esa URL y **re-correr el
+> 4. Editar `app_url` en `supabase/cron.sql` con esa URL y **re-correr el
 >    script** (ver [§7](#7-el-cron--scheduling-autónomo)).
-> 4. Recién entonces correr la verificación end-to-end de [§13](#13-verificación-end-to-end).
+> 5. Recién entonces correr la verificación end-to-end de [§13](#13-verificación-end-to-end).
 >
 > El **código está verificado**: `npm run lint` (0 errores), `npm run typecheck`,
 > `npm test` (46 tests) y `npm run build` (con `NODE_ENV=production`) pasan. Lo

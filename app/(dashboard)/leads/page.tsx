@@ -7,9 +7,14 @@
  * `searchParams`). El detalle de cada lead vive en `/leads/[id]` (paso 21).
  */
 
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { getAdminClient } from "@/lib/supabase/admin";
+
+import { CATEGORY_BADGE, FEEDBACK_LABELS, NOTIFY_LABELS } from "../labels";
+
+export const metadata: Metadata = { title: "Leads" };
 
 /** Cantidad de leads por página. */
 const PAGE_SIZE = 50;
@@ -47,29 +52,6 @@ const LLM_STATUSES = {
   failed: "Falló",
   skipped: "Descartado",
 } as const;
-
-/** Etiqueta legible de cada estado de notificación. */
-const NOTIFY_LABELS: Record<string, string> = {
-  pending: "Pendiente",
-  sending: "Enviando",
-  sent: "Enviada",
-  failed: "Falló",
-  skipped: "Descartada",
-};
-
-/** Etiqueta legible de cada valor de feedback. */
-const FEEDBACK_LABELS: Record<string, string> = {
-  responded: "Respondido",
-  interested: "Interesado",
-  not_relevant: "No relevante",
-};
-
-/** Clases de color del badge de categoría. */
-const CATEGORY_BADGE: Record<string, string> = {
-  hiring: "bg-green-100 text-green-800",
-  maybe: "bg-amber-100 text-amber-800",
-  noise: "bg-zinc-100 text-zinc-600",
-};
 
 /** Forma de la fila de lead que trae el listado. */
 interface LeadListRow {

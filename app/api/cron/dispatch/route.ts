@@ -22,6 +22,12 @@ import { getAdminClient } from "@/lib/supabase/admin";
 
 /** El dispatcher se ejecuta siempre, sin caché. */
 export const dynamic = "force-dynamic";
+/**
+ * El fan-out en `after()` espera a que cada `/api/poll/<slug>` termine (cada
+ * uno con su presupuesto de 300 s): el dispatcher necesita el mismo techo para
+ * no cortar ese `after()` antes de tiempo.
+ */
+export const maxDuration = 300;
 
 const log = createLogger({ route: "dispatch" });
 

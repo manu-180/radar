@@ -14,6 +14,12 @@
  * server action revalida `/config` para que el cambio se vea al instante.
  */
 
+import type { Metadata } from "next";
+
+import {
+  DEFAULT_MAX_NOTIFICATIONS_PER_RUN,
+  DEFAULT_NOTIFY_RULE,
+} from "@/lib/settings";
 import { getSource } from "@/lib/sources";
 import { getAdminClient } from "@/lib/supabase/admin";
 
@@ -26,6 +32,8 @@ import {
   type Source,
   SourceRow,
 } from "./sources";
+
+export const metadata: Metadata = { title: "Configuración" };
 
 /** Render dinámico: la config no se cachea, se lee fresca en cada request. */
 export const dynamic = "force-dynamic";
@@ -54,10 +62,6 @@ const LANG_GROUPS: { lang: KeywordLang; label: string }[] = [
   { lang: "en", label: "Inglés" },
 ];
 
-/** Valores por defecto de `settings`, usados si una clave falta en la tabla. */
-const DEFAULT_NOTIFY_RULE = { categories: ["hiring"], minScore: 70 };
-const DEFAULT_MAX_NOTIFICATIONS = 10;
-
 export default async function ConfigPage() {
   const db = getAdminClient();
   const [keywordsRes, sourcesRes, settingsRes] = await Promise.all([
@@ -76,8 +80,8 @@ export default async function ConfigPage() {
   const { data, error } = keywordsRes;
   const keywords = (data ?? []) as Keyword[];
 
-  // Las fuentes salen de la tabla; el registry sólo aporta si hay un adaptador
-  // que valide su `config` (telegram/discord aún no tienen uno).
+  // Las fuentes salen de la tabla; el registry sólo aporta el `hasAdapter`,
+  // que marca si hay un adaptador registrado que valide su `config`.
   const sources: Source[] = (sourcesRes.data ?? []).map((row) => ({
     slug: row.slug as string,
     name: row.name as string,
@@ -93,7 +97,7 @@ export default async function ConfigPage() {
   const notifyRule = settings.get("notify_rule") ?? DEFAULT_NOTIFY_RULE;
   const maxRaw = settings.get("max_notifications_per_run");
   const maxNotifications =
-    typeof maxRaw === "number" ? maxRaw : DEFAULT_MAX_NOTIFICATIONS;
+    typeof maxRaw === "number" ? maxRaw : DEFAULT_MAX_NOTIFICATIONS_PER_RUN;
   const profileRaw = settings.get("freelancer_profile");
   const freelancerProfile = typeof profileRaw === "string" ? profileRaw : "";
 

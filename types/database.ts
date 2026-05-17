@@ -46,6 +46,7 @@ export type Database = {
           author: string | null
           body: string | null
           category: string | null
+          claimed_at: string | null
           content_hash: string
           external_id: string | null
           feedback: string | null
@@ -77,6 +78,7 @@ export type Database = {
           author?: string | null
           body?: string | null
           category?: string | null
+          claimed_at?: string | null
           content_hash: string
           external_id?: string | null
           feedback?: string | null
@@ -108,6 +110,7 @@ export type Database = {
           author?: string | null
           body?: string | null
           category?: string | null
+          claimed_at?: string | null
           content_hash?: string
           external_id?: string | null
           feedback?: string | null
@@ -146,7 +149,7 @@ export type Database = {
           lead_id: number | null
           status: string
           updated_at: string
-          wassenger_id: string | null
+          provider_message_id: string | null
         }
         Insert: {
           channel?: string
@@ -156,7 +159,7 @@ export type Database = {
           lead_id?: number | null
           status?: string
           updated_at?: string
-          wassenger_id?: string | null
+          provider_message_id?: string | null
         }
         Update: {
           channel?: string
@@ -166,7 +169,7 @@ export type Database = {
           lead_id?: number | null
           status?: string
           updated_at?: string
-          wassenger_id?: string | null
+          provider_message_id?: string | null
         }
         Relationships: [
           {
@@ -282,6 +285,7 @@ export type Database = {
           author: string | null
           body: string | null
           category: string | null
+          claimed_at: string | null
           content_hash: string
           external_id: string | null
           feedback: string | null
@@ -322,6 +326,7 @@ export type Database = {
           author: string | null
           body: string | null
           category: string | null
+          claimed_at: string | null
           content_hash: string
           external_id: string | null
           feedback: string | null

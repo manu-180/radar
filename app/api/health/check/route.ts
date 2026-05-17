@@ -21,7 +21,7 @@
 import { finishRun, startRun } from "@/lib/db/runs";
 import { env } from "@/lib/env";
 import { createLogger } from "@/lib/logger";
-import { sendWhatsApp } from "@/lib/notify/wassenger";
+import { sendWhatsApp } from "@/lib/notify/evolution";
 import { verifyCronSecret } from "@/lib/security";
 import { getAdminClient } from "@/lib/supabase/admin";
 
@@ -41,6 +41,8 @@ const POLL_STALE_AFTER_MS = 90 * MINUTE_MS;
 const SOURCE_DOWN_STREAK = 3;
 /** Un lead `pending` más viejo que esto delata un backlog de IA estancado. */
 const BACKLOG_STALE_AFTER_MS = 2 * HOUR_MS;
+/** Un lead atascado en un estado intermedio más que esto delata un reclamo sin reciclar. */
+const STUCK_LEAD_AFTER_MS = 45 * MINUTE_MS;
 /** Ventana para considerar "reciente" un fallo del cron de Postgres. */
 const CRON_FAILURE_WINDOW_MIN = 90;
 /** Cooldown entre dos avisos del *mismo* problema (recordatorio). */
@@ -177,6 +179,42 @@ async function checkNotifications(db: Db): Promise<Problem[]> {
   ];
 }
 
+/**
+ * ¿Hay leads atascados en un estado intermedio?
+ *
+ * Un lead en `processing` (clasificación) o `sending` (notificación) cuyo
+ * `claimed_at` quedó más viejo que {@link STUCK_LEAD_AFTER_MS} delata que el
+ * reclamo resiliente no lo recicló — típicamente porque la etapa que debía
+ * re-tomarlo (`/api/process` o `/api/notify`) dejó de correr. El reclamo normal
+ * recicla a los 15 min, así que pasados 45 min ya es una anomalía real.
+ *
+ * Tolerante a un esquema viejo: si la columna `claimed_at` todavía no existe
+ * (migración 0007 sin aplicar) la consulta falla; en vez de tumbar el chequeo
+ * entero se loguea y se devuelve sin problema detectado.
+ */
+async function checkStuckLeads(db: Db, now: number): Promise<Problem[]> {
+  const since = new Date(now - STUCK_LEAD_AFTER_MS).toISOString();
+  const { count, error } = await db
+    .from("leads")
+    .select("id", { count: "exact", head: true })
+    .or("llm_status.eq.processing,notify_status.eq.sending")
+    .lt("claimed_at", since);
+  if (error) {
+    log.warn(
+      "No se pudo evaluar los leads atascados (¿migración 0007 pendiente?)",
+      { error: error.message },
+    );
+    return [];
+  }
+  if ((count ?? 0) === 0) return [];
+  return [
+    {
+      key: "stuck-leads",
+      summary: `${count} lead(s) atascados en un estado intermedio hace más de 45 min.`,
+    },
+  ];
+}
+
 /** ¿El cron de Postgres tuvo corridas fallidas recientes? */
 async function checkCron(db: Db): Promise<Problem[]> {
   const { data, error } = await db.rpc("health_cron_failures", {
@@ -198,7 +236,7 @@ async function checkCron(db: Db): Promise<Problem[]> {
   ];
 }
 
-/** Corre las cinco reglas en paralelo y junta todos los problemas. */
+/** Corre las seis reglas en paralelo y junta todos los problemas. */
 async function collectProblems(db: Db, now: number): Promise<Problem[]> {
   const groups = await Promise.all([
     checkPolling(db, now),
@@ -206,6 +244,7 @@ async function collectProblems(db: Db, now: number): Promise<Problem[]> {
     checkBacklog(db, now),
     checkNotifications(db),
     checkCron(db),
+    checkStuckLeads(db, now),
   ]);
   return groups.flat();
 }

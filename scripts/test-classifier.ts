@@ -29,6 +29,7 @@ import type {
   ClassifyLeadInput,
   LeadCategory,
 } from "@/lib/ai/classifier";
+import { totalInputTokens } from "@/lib/ai/pricing";
 
 // --- Re-ejecución: corre antes de cualquier import dinámico del clasificador ---
 if (!process.env.__TEST_CLASSIFIER_CHILD) {
@@ -172,7 +173,7 @@ async function main(): Promise<void> {
       }`,
     );
     console.log(
-      `  usage            : ${usage.inputTokens} tokens in, ` +
+      `  usage            : ${totalInputTokens(usage)} tokens in, ` +
         `${usage.outputTokens} tokens out`,
     );
   }

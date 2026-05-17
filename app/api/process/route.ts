@@ -31,15 +31,22 @@ import {
   classifyLead,
   DEFAULT_CLASSIFIER_MODEL,
   ESCALATION_MODEL,
-  type ClassificationUsage,
   type ClassifyLeadInput,
   type FeedbackExample,
   type LeadCategory,
 } from "@/lib/ai/classifier";
+import {
+  addUsage,
+  costUsd,
+  emptyUsage,
+  roundCost,
+  totalInputTokens,
+} from "@/lib/ai/pricing";
 import { finishRun, startRun } from "@/lib/db/runs";
 import { env } from "@/lib/env";
 import { createLogger, type Logger } from "@/lib/logger";
 import { verifyCronSecret } from "@/lib/security";
+import { loadProcessSettings, type ProcessSettings } from "@/lib/settings";
 import { getAdminClient } from "@/lib/supabase/admin";
 import type { Tables } from "@/types/database";
 
@@ -57,46 +64,11 @@ const MAX_ATTEMPTS = 5;
 /** Tope de re-disparos encadenados del drenado, para no entrar en bucle. */
 const MAX_DRAIN_DEPTH = 8;
 
-/**
- * Precios de los modelos, en USD por millón de tokens. Se usan para calcular
- * `llm_cost_usd` y poder seguir el gasto del clasificador.
- */
-const PRICING: Record<string, { input: number; output: number }> = {
-  [DEFAULT_CLASSIFIER_MODEL]: { input: 1, output: 5 }, // Haiku 4.5
-  [ESCALATION_MODEL]: { input: 3, output: 15 }, // Sonnet 4.6
-};
-
-/** Regla de notificación: qué categorías y qué score mínimo ameritan avisar. */
-interface NotifyRule {
-  categories: string[];
-  minScore: number;
-}
-
-/** Valor por defecto de `notify_rule` si la clave falta en `settings`. */
-const DEFAULT_NOTIFY_RULE: NotifyRule = { categories: ["hiring"], minScore: 70 };
-/** Cantidad por defecto de ejemplos de feedback. */
-const DEFAULT_FEEDBACK_COUNT = 6;
-
 const log = createLogger({ route: "process" });
 
 /** Atajo para responder JSON con un código de estado. */
 function json(body: unknown, status: number): Response {
   return Response.json(body, { status });
-}
-
-/** Redondea a 6 decimales, la precisión de la columna `llm_cost_usd`. */
-function round6(n: number): number {
-  return Math.round(n * 1e6) / 1e6;
-}
-
-/** Costo en USD de una llamada, según el modelo y los tokens consumidos. */
-function callCost(model: string, usage: ClassificationUsage): number {
-  const price = PRICING[model];
-  if (!price) return 0;
-  return (
-    (usage.inputTokens / 1e6) * price.input +
-    (usage.outputTokens / 1e6) * price.output
-  );
 }
 
 /**
@@ -129,57 +101,6 @@ function readDrainDepth(request: Request): number {
   const raw = request.headers.get("x-drain-depth");
   const depth = Number(raw);
   return Number.isInteger(depth) && depth >= 0 ? depth : 0;
-}
-
-/** Configuración leída una vez de `settings` al arrancar la corrida. */
-interface ProcessSettings {
-  freelancerProfile: string;
-  notifyRule: NotifyRule;
-  feedbackCount: number;
-}
-
-/** Carga las claves de `settings` que necesita la clasificación. */
-async function loadSettings(
-  db: ReturnType<typeof getAdminClient>,
-  runLog: Logger,
-): Promise<ProcessSettings> {
-  const { data, error } = await db
-    .from("settings")
-    .select("key, value")
-    .in("key", ["freelancer_profile", "notify_rule", "feedback_examples_count"]);
-
-  if (error) {
-    throw new Error(`No se pudieron leer los settings: ${error.message}`);
-  }
-
-  const byKey = new Map<string, unknown>(
-    (data ?? []).map((row) => [row.key as string, row.value]),
-  );
-
-  const profileRaw = byKey.get("freelancer_profile");
-  const freelancerProfile = typeof profileRaw === "string" ? profileRaw : "";
-  if (!freelancerProfile) {
-    runLog.warn("settings.freelancer_profile ausente o vacío");
-  }
-
-  const ruleRaw = byKey.get("notify_rule");
-  let notifyRule = DEFAULT_NOTIFY_RULE;
-  if (
-    ruleRaw &&
-    typeof ruleRaw === "object" &&
-    Array.isArray((ruleRaw as NotifyRule).categories) &&
-    typeof (ruleRaw as NotifyRule).minScore === "number"
-  ) {
-    notifyRule = ruleRaw as NotifyRule;
-  }
-
-  const countRaw = byKey.get("feedback_examples_count");
-  const feedbackCount =
-    typeof countRaw === "number" && countRaw >= 0
-      ? Math.floor(countRaw)
-      : DEFAULT_FEEDBACK_COUNT;
-
-  return { freelancerProfile, notifyRule, feedbackCount };
 }
 
 /**
@@ -228,26 +149,25 @@ interface ClassifyOutcome {
 
 /**
  * Clasifica un lead con Haiku y, si el resultado es `maybe`, reintenta con
- * Sonnet para desempatar. Los tokens y el costo se acumulan sobre ambas
- * llamadas; el resultado y el `model` reportados son los de la última.
+ * Sonnet para desempatar. Los tokens se acumulan sobre ambas llamadas; el
+ * costo se calcula por llamada con la tarifa de SU modelo y se suma. El
+ * resultado y el `model` reportados son los de la última llamada.
  */
 async function classifyWithEscalation(
   input: ClassifyLeadInput,
   freelancerProfile: string,
   feedbackExamples: FeedbackExample[],
 ): Promise<ClassifyOutcome> {
-  let inputTokens = 0;
-  let outputTokens = 0;
-  let costUsd = 0;
+  let usage = emptyUsage();
+  let cost = 0;
 
   const haiku = await classifyLead(input, {
     model: DEFAULT_CLASSIFIER_MODEL,
     freelancerProfile,
     feedbackExamples,
   });
-  inputTokens += haiku.usage.inputTokens;
-  outputTokens += haiku.usage.outputTokens;
-  costUsd += callCost(DEFAULT_CLASSIFIER_MODEL, haiku.usage);
+  usage = addUsage(usage, haiku.usage);
+  cost += costUsd(DEFAULT_CLASSIFIER_MODEL, haiku.usage);
 
   let result = haiku.result;
   let model = DEFAULT_CLASSIFIER_MODEL;
@@ -258,9 +178,8 @@ async function classifyWithEscalation(
       freelancerProfile,
       feedbackExamples,
     });
-    inputTokens += sonnet.usage.inputTokens;
-    outputTokens += sonnet.usage.outputTokens;
-    costUsd += callCost(ESCALATION_MODEL, sonnet.usage);
+    usage = addUsage(usage, sonnet.usage);
+    cost += costUsd(ESCALATION_MODEL, sonnet.usage);
     result = sonnet.result;
     model = ESCALATION_MODEL;
   }
@@ -271,9 +190,9 @@ async function classifyWithEscalation(
     reason: result.reason,
     suggested_reply: result.suggested_reply,
     model,
-    inputTokens,
-    outputTokens,
-    costUsd: round6(costUsd),
+    inputTokens: totalInputTokens(usage),
+    outputTokens: usage.outputTokens,
+    costUsd: roundCost(cost),
   };
 }
 
@@ -418,8 +337,14 @@ export async function POST(request: Request): Promise<Response> {
   try {
     // Los settings y el feedback se cargan ANTES de reclamar: si fallan, no
     // dejamos leads colgados en `processing`.
-    const settings = await loadSettings(db, runLog);
-    const feedbackExamples = await loadFeedbackExamples(db, settings.feedbackCount);
+    const settings = await loadProcessSettings();
+    if (!settings.freelancerProfile) {
+      runLog.warn("settings.freelancer_profile ausente o vacío");
+    }
+    const feedbackExamples = await loadFeedbackExamples(
+      db,
+      settings.feedbackExamplesCount,
+    );
 
     // Reclamo atómico del lote (FOR UPDATE SKIP LOCKED dentro de la función).
     const { data: leads, error: claimErr } = await db.rpc("claim_pending_leads", {

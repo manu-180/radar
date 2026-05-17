@@ -41,8 +41,7 @@ const POLL_DOWN_AFTER_MS = HOUR_MS;
 const BACKLOG_STALE_AFTER_MS = 30 * 60 * 1000;
 
 /** Tipos de run que se reportan en el desglose. */
-const REPORTED_KINDS = ["poll", "process", "notify"] as const;
-type ReportedKind = (typeof REPORTED_KINDS)[number];
+type ReportedKind = "poll" | "process" | "notify";
 
 /** Estado global del sistema. */
 type HealthStatus = "ok" | "degraded" | "down";

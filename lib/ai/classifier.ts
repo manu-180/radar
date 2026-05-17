@@ -23,6 +23,7 @@ import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 
+import type { TokenUsage } from "@/lib/ai/pricing";
 import { env } from "@/lib/env";
 
 /** Modelo por defecto del clasificador: barato y suficiente para el grueso. */
@@ -66,13 +67,14 @@ export interface ClassificationResult {
   suggested_reply: string;
 }
 
-/** Consumo de tokens de la llamada, para métricas y costo. */
-export interface ClassificationUsage {
-  /** Tokens de entrada (incluye los servidos desde la caché). */
-  inputTokens: number;
-  /** Tokens de salida generados. */
-  outputTokens: number;
-}
+/**
+ * Consumo de tokens de la llamada, con el desglose de prompt caching.
+ *
+ * Es el {@link TokenUsage} de `lib/ai/pricing`: el costo de la llamada se
+ * calcula a partir de este desglose, porque los tokens servidos o escritos en
+ * la caché se facturan a una tarifa distinta de los tokens de entrada normales.
+ */
+export type ClassificationUsage = TokenUsage;
 
 /**
  * Ejemplo de feedback de un lead anterior, ya corregido por una persona.
@@ -380,8 +382,12 @@ export async function classifyLead(
 
   return {
     result: parsed.data,
+    // El SDK reporta los tokens de caché en campos aparte (`null` si la llamada
+    // no usó caché): se mapean a su balde para que el costo los pondere bien.
     usage: {
-      inputTokens: message.usage.input_tokens,
+      uncachedInputTokens: message.usage.input_tokens,
+      cacheCreationTokens: message.usage.cache_creation_input_tokens ?? 0,
+      cacheReadTokens: message.usage.cache_read_input_tokens ?? 0,
       outputTokens: message.usage.output_tokens,
     },
   };

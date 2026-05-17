@@ -93,6 +93,10 @@ export async function fetchWithRetry(
     }, timeoutMs);
     const onCallerAbort = () => controller.abort();
     callerSignal?.addEventListener("abort", onCallerAbort);
+    // Si el `signal` del llamador ya estaba abortado —de entrada, o abortado
+    // durante el backoff entre intentos— `addEventListener` no dispara para un
+    // evento ya pasado: hay que propagar el abort a mano.
+    if (callerSignal?.aborted) controller.abort();
 
     let response: Response;
     try {

@@ -31,12 +31,16 @@ const schema = z.object({
   ANTHROPIC_API_KEY: z
     .string({ error: "Falta ANTHROPIC_API_KEY" })
     .min(1, "ANTHROPIC_API_KEY no puede estar vacía"),
-  WASSENGER_API_KEY: z
-    .string({ error: "Falta WASSENGER_API_KEY" })
-    .min(1, "WASSENGER_API_KEY no puede estar vacía"),
-  WASSENGER_WEBHOOK_SECRET: z
-    .string({ error: "Falta WASSENGER_WEBHOOK_SECRET" })
-    .min(1, "WASSENGER_WEBHOOK_SECRET no puede estar vacía"),
+  // Evolution API: la instancia de WhatsApp propia (infra de "senders").
+  EVOLUTION_API_URL: z.url({
+    error: "EVOLUTION_API_URL debe ser una URL válida",
+  }),
+  EVOLUTION_API_KEY: z
+    .string({ error: "Falta EVOLUTION_API_KEY" })
+    .min(1, "EVOLUTION_API_KEY no puede estar vacía"),
+  EVOLUTION_INSTANCE: z
+    .string({ error: "Falta EVOLUTION_INSTANCE" })
+    .min(1, "EVOLUTION_INSTANCE no puede estar vacía"),
   OWNER_WHATSAPP: z
     .string({ error: "Falta OWNER_WHATSAPP" })
     .regex(E164, "OWNER_WHATSAPP debe estar en formato E.164, ej. +5491112345678"),
@@ -117,8 +121,9 @@ export const env = {
 
   SUPABASE_SERVICE_ROLE_KEY: raw.SUPABASE_SERVICE_ROLE_KEY,
   ANTHROPIC_API_KEY: raw.ANTHROPIC_API_KEY,
-  WASSENGER_API_KEY: raw.WASSENGER_API_KEY,
-  WASSENGER_WEBHOOK_SECRET: raw.WASSENGER_WEBHOOK_SECRET,
+  EVOLUTION_API_URL: raw.EVOLUTION_API_URL,
+  EVOLUTION_API_KEY: raw.EVOLUTION_API_KEY,
+  EVOLUTION_INSTANCE: raw.EVOLUTION_INSTANCE,
   OWNER_WHATSAPP: raw.OWNER_WHATSAPP,
   CRON_SECRET: raw.CRON_SECRET,
   AUTH_SECRET: raw.AUTH_SECRET,

@@ -23,11 +23,12 @@
  */
 
 import { buildLeadMessage } from "@/lib/notify/message";
-import { sendWhatsApp } from "@/lib/notify/wassenger";
+import { sendWhatsApp } from "@/lib/notify/evolution";
 import { finishRun, startRun } from "@/lib/db/runs";
 import { env } from "@/lib/env";
 import { createLogger } from "@/lib/logger";
 import { verifyCronSecret } from "@/lib/security";
+import { loadNotifySettings } from "@/lib/settings";
 import { getAdminClient } from "@/lib/supabase/admin";
 import type { Tables } from "@/types/database";
 
@@ -35,17 +36,6 @@ import type { Tables } from "@/types/database";
 export const dynamic = "force-dynamic";
 /** Avisar un lote completo, con esperas entre envíos, puede tardar: hasta 5 min. */
 export const maxDuration = 300;
-
-/** Regla de notificación: qué categorías y qué score mínimo ameritan avisar. */
-interface NotifyRule {
-  categories: string[];
-  minScore: number;
-}
-
-/** Valor por defecto de `notify_rule` si la clave falta en `settings`. */
-const DEFAULT_NOTIFY_RULE: NotifyRule = { categories: ["hiring"], minScore: 70 };
-/** Tope por defecto de avisos por corrida si la clave falta en `settings`. */
-const DEFAULT_MAX_PER_RUN = 10;
 
 /** Espera mínima y máxima (ms) entre dos envíos consecutivos de WhatsApp. */
 const SEND_DELAY_MIN_MS = 3_000;
@@ -70,49 +60,6 @@ function randomSendDelay(): number {
   );
 }
 
-/** Configuración leída de `settings` al arrancar la corrida. */
-interface NotifySettings {
-  rule: NotifyRule;
-  maxPerRun: number;
-}
-
-/** Carga las claves de `settings` que necesita la notificación. */
-async function loadSettings(
-  db: ReturnType<typeof getAdminClient>,
-): Promise<NotifySettings> {
-  const { data, error } = await db
-    .from("settings")
-    .select("key, value")
-    .in("key", ["notify_rule", "max_notifications_per_run"]);
-
-  if (error) {
-    throw new Error(`No se pudieron leer los settings: ${error.message}`);
-  }
-
-  const byKey = new Map<string, unknown>(
-    (data ?? []).map((row) => [row.key as string, row.value]),
-  );
-
-  const ruleRaw = byKey.get("notify_rule");
-  let rule = DEFAULT_NOTIFY_RULE;
-  if (
-    ruleRaw &&
-    typeof ruleRaw === "object" &&
-    Array.isArray((ruleRaw as NotifyRule).categories) &&
-    typeof (ruleRaw as NotifyRule).minScore === "number"
-  ) {
-    rule = ruleRaw as NotifyRule;
-  }
-
-  const maxRaw = byKey.get("max_notifications_per_run");
-  const maxPerRun =
-    typeof maxRaw === "number" && maxRaw > 0
-      ? Math.floor(maxRaw)
-      : DEFAULT_MAX_PER_RUN;
-
-  return { rule, maxPerRun };
-}
-
 /** Desenlace de avisar un lead, para las métricas de la corrida. */
 type NotifyStatus = "sent" | "failed";
 
@@ -132,7 +79,10 @@ async function notifyLead(
 
   try {
     const message = buildLeadMessage(lead);
-    const { id: wassengerId } = await sendWhatsApp(env.OWNER_WHATSAPP, message);
+    const { id: providerMessageId } = await sendWhatsApp(
+      env.OWNER_WHATSAPP,
+      message,
+    );
 
     // El lead avisó bien: se cierra su cola de notificación.
     const { error: leadErr } = await db
@@ -148,7 +98,7 @@ async function notifyLead(
     const { error: notifErr } = await db.from("notifications").insert({
       lead_id: lead.id,
       channel: "whatsapp",
-      wassenger_id: wassengerId,
+      provider_message_id: providerMessageId,
       status: "sent",
     });
     if (notifErr) {
@@ -157,7 +107,7 @@ async function notifyLead(
       });
     }
 
-    leadLog.info("Lead notificado", { wassengerId });
+    leadLog.info("Lead notificado", { providerMessageId });
     return "sent";
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -206,16 +156,16 @@ export async function POST(request: Request): Promise<Response> {
   const tally: Record<NotifyStatus, number> = { sent: 0, failed: 0 };
 
   try {
-    const settings = await loadSettings(db);
+    const settings = await loadNotifySettings();
 
     // Reclamo atómico del lote (FOR UPDATE SKIP LOCKED dentro de la función).
-    // El tope `maxPerRun` acota cuántos avisos salen en esta corrida.
+    // `maxNotificationsPerRun` acota cuántos avisos salen en esta corrida.
     const { data: leads, error: claimErr } = await db.rpc(
       "claim_leads_to_notify",
       {
-        batch_size: settings.maxPerRun,
-        cats: settings.rule.categories,
-        min_score: settings.rule.minScore,
+        batch_size: settings.maxNotificationsPerRun,
+        cats: settings.notifyRule.categories,
+        min_score: settings.notifyRule.minScore,
       },
     );
     if (claimErr) {
@@ -224,7 +174,10 @@ export async function POST(request: Request): Promise<Response> {
 
     const batch = (leads ?? []) as Tables<"leads">[];
     claimed = batch.length;
-    runLog.info("Lote reclamado", { claimed, maxPerRun: settings.maxPerRun });
+    runLog.info("Lote reclamado", {
+      claimed,
+      maxPerRun: settings.maxNotificationsPerRun,
+    });
 
     // Envío secuencial con una espera de 3–5 s entre leads: avisar de a uno
     // mantiene un ritmo humano y deja un orden de envío predecible.

@@ -6,8 +6,9 @@ const BASE: Record<string, string> = {
   NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
   SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
   ANTHROPIC_API_KEY: "sk-ant-test",
-  WASSENGER_API_KEY: "wassenger-key",
-  WASSENGER_WEBHOOK_SECRET: "webhook-secret",
+  EVOLUTION_API_URL: "https://evolution.example.com",
+  EVOLUTION_API_KEY: "evolution-key",
+  EVOLUTION_INSTANCE: "wa-test",
   OWNER_WHATSAPP: "+5491112345678",
   CRON_SECRET: "cron-secret-aleatorio-largo-1234",
   AUTH_SECRET: "auth-secret-aleatorio-largo-1234",
@@ -56,8 +57,14 @@ describe("lib/env", () => {
 
   it("trata una variable requerida vacía como faltante", async () => {
     await expect(
-      importEnv({ ...BASE, WASSENGER_API_KEY: "" }),
-    ).rejects.toThrow(/WASSENGER_API_KEY/);
+      importEnv({ ...BASE, EVOLUTION_API_KEY: "" }),
+    ).rejects.toThrow(/EVOLUTION_API_KEY/);
+  });
+
+  it("rechaza un EVOLUTION_API_URL que no sea una URL válida", async () => {
+    await expect(
+      importEnv({ ...BASE, EVOLUTION_API_URL: "no-es-una-url" }),
+    ).rejects.toThrow(/EVOLUTION_API_URL/);
   });
 
   it("rechaza un OWNER_WHATSAPP que no esté en formato E.164", async () => {

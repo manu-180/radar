@@ -31,6 +31,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 
 import type { ClassifyLeadInput, LeadCategory } from "@/lib/ai/classifier";
+import { totalInputTokens } from "@/lib/ai/pricing";
 import type { ClassifierCase } from "@/test/fixtures/classifier-cases";
 
 // --- Re-ejecución: corre antes de cualquier import dinámico del clasificador ---
@@ -138,7 +139,7 @@ async function main(): Promise<void> {
       model: DEFAULT_CLASSIFIER_MODEL,
       freelancerProfile: FREELANCER_PROFILE,
     });
-    inputTokens += usage.inputTokens;
+    inputTokens += totalInputTokens(usage);
     outputTokens += usage.outputTokens;
 
     const ok = result.category === c.expectedCategory;

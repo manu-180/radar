@@ -10,39 +10,19 @@
  * Client Components mínimos (`CopyButton`, `FeedbackButtons`).
  */
 
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getAdminClient } from "@/lib/supabase/admin";
 
+import { CATEGORY_BADGE, LLM_STATUS_LABELS, NOTIFY_LABELS } from "../../labels";
+
 import type { FeedbackValue } from "./actions";
 import { CopyButton } from "./copy-button";
 import { FeedbackButtons } from "./feedback-buttons";
 
-/** Clases de color del badge de categoría. */
-const CATEGORY_BADGE: Record<string, string> = {
-  hiring: "bg-green-100 text-green-800",
-  maybe: "bg-amber-100 text-amber-800",
-  noise: "bg-zinc-100 text-zinc-600",
-};
-
-/** Etiqueta legible de cada estado de clasificación con IA. */
-const LLM_STATUS_LABELS: Record<string, string> = {
-  pending: "Pendiente",
-  processing: "Procesando",
-  done: "Clasificado",
-  failed: "Falló",
-  skipped: "Descartado",
-};
-
-/** Etiqueta legible de cada estado de notificación. */
-const NOTIFY_LABELS: Record<string, string> = {
-  pending: "Pendiente",
-  sending: "Enviando",
-  sent: "Enviada",
-  failed: "Falló",
-  skipped: "Descartada",
-};
+export const metadata: Metadata = { title: "Detalle de lead" };
 
 /** Formatea una fecha ISO a fecha + hora en español, o `—` si es nula. */
 function formatDateTime(iso: string | null): string {

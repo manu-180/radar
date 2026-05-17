@@ -19,11 +19,9 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { notifyRuleSchema } from "@/lib/settings";
 import { getSource } from "@/lib/sources";
 import { getAdminClient } from "@/lib/supabase/admin";
-
-/** Categorías de lead válidas, alineadas con el `check` de `leads.category`. */
-const CATEGORIES = ["hiring", "maybe", "noise"] as const;
 
 /** Tope defensivo de avisos por corrida; evita valores absurdos en `settings`. */
 const MAX_NOTIFICATIONS_CAP = 1000;
@@ -87,9 +85,9 @@ export async function toggleSource(
  *
  * El texto se parsea como JSON y, si la fuente tiene un adaptador registrado,
  * se valida contra su `configSchema` de Zod. Sólo el valor ya validado (con los
- * defaults del schema aplicados) se persiste. Una fuente sin adaptador —p. ej.
- * `telegram`/`discord` aún sin implementar— se guarda como objeto JSON tal cual,
- * ya que no hay schema contra el cual validarla.
+ * defaults del schema aplicados) se persiste. Una fuente sin adaptador
+ * registrado se guarda como objeto JSON tal cual, ya que no hay un schema
+ * contra el cual validarla.
  */
 export async function updateSourceConfig(
   slug: string,
@@ -154,14 +152,6 @@ async function writeSetting(key: string, value: unknown): Promise<ConfigResult> 
   revalidatePath("/config");
   return { ok: true };
 }
-
-/** Schema de `settings.notify_rule`: qué categorías y qué score ameritan avisar. */
-const notifyRuleSchema = z.object({
-  /** Categorías de lead que disparan un aviso; al menos una. */
-  categories: z.array(z.enum(CATEGORIES)).min(1),
-  /** Score mínimo (0–100) para avisar dentro de esas categorías. */
-  minScore: z.number().int().min(0).max(100),
-});
 
 /**
  * Edita la regla de notificación (`settings.notify_rule`) desde el editor JSON.

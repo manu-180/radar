@@ -12,7 +12,11 @@
  * tienen que reflejar el estado actual de la base, no una versión cacheada.
  */
 
+import type { Metadata } from "next";
+
 import { getAdminClient } from "@/lib/supabase/admin";
+
+export const metadata: Metadata = { title: "Métricas" };
 
 export const dynamic = "force-dynamic";
 

@@ -214,33 +214,70 @@ export const hackerNewsAdapter: SourceAdapter = {
       }
     };
 
+    // Cada veta se baja aislada: si una falla se loguea y se sigue con el
+    // resto. Sólo se lanza error si fallan TODAS — eso ya es un fallo real de
+    // la fuente, no una corrida vacía legítima. Es el mismo criterio de
+    // aislamiento que aplican los demás adaptadores.
+    let units = 0;
+    let failures = 0;
+
     // Veta 1: comentarios recientes por keyword query.
     for (const query of config.keywordQueries) {
-      const hits = await searchComments(query, floor);
-      hits.forEach(collect);
-      log.info("Query de comentarios procesada", { query, hits: hits.length });
+      units++;
+      try {
+        const hits = await searchComments(query, floor);
+        hits.forEach(collect);
+        log.info("Query de comentarios procesada", {
+          query,
+          hits: hits.length,
+        });
+      } catch (err) {
+        failures++;
+        log.warn("Falló una query de comentarios, se continúa con el resto", {
+          query,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
     }
 
     // Veta 2: respuestas "SEEKING FREELANCER" del hilo mensual.
     if (config.includeWhoIsHiring) {
-      const storyId = await findFreelancerThread();
-      if (storyId) {
-        const comments = await fetchThreadComments(storyId);
-        const seeking = comments.filter((hit) => {
-          if (typeof hit.created_at_i === "number" && hit.created_at_i <= floor) {
-            return false;
-          }
-          return normalizeText(stripHtml(hit.comment_text ?? "")).startsWith(
-            "seeking freelancer",
-          );
-        });
-        seeking.forEach(collect);
-        log.info("Hilo de freelancers procesado", {
-          storyId,
-          comments: comments.length,
-          seekingFreelancer: seeking.length,
+      units++;
+      try {
+        const storyId = await findFreelancerThread();
+        if (storyId) {
+          const comments = await fetchThreadComments(storyId);
+          const seeking = comments.filter((hit) => {
+            if (
+              typeof hit.created_at_i === "number" &&
+              hit.created_at_i <= floor
+            ) {
+              return false;
+            }
+            return normalizeText(stripHtml(hit.comment_text ?? "")).startsWith(
+              "seeking freelancer",
+            );
+          });
+          seeking.forEach(collect);
+          log.info("Hilo de freelancers procesado", {
+            storyId,
+            comments: comments.length,
+            seekingFreelancer: seeking.length,
+          });
+        }
+      } catch (err) {
+        failures++;
+        log.warn("Falló el hilo de freelancers, se continúa", {
+          error: err instanceof Error ? err.message : String(err),
         });
       }
+    }
+
+    // Si fallaron todas las vetas es un fallo real de la fuente.
+    if (units > 0 && failures === units) {
+      throw new Error(
+        `hackernews: fallaron las ${failures} veta(s) configuradas.`,
+      );
     }
 
     const items = [...seen.values()]
@@ -250,6 +287,7 @@ export const hackerNewsAdapter: SourceAdapter = {
     log.info("Corrida de polling completa", {
       items: items.length,
       lastCreatedAt: maxCreatedAt,
+      failures,
     });
 
     return { items, cursor: { lastCreatedAt: maxCreatedAt } };
