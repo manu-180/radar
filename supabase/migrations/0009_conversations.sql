@@ -187,9 +187,21 @@ create trigger messages_bump_counters
 -- ── 5.5 runs.kind: habilitar las corridas nuevas (engage/followup/inbound) ──
 -- Las rutas nuevas abren corridas de observabilidad con startRun(); el check de
 -- `runs.kind` (migración 0001) sólo permitía poll/process/notify/health.
+-- Se descubre el check por introspección (no por nombre fijo): así, sea cual sea
+-- el nombre auto-generado del constraint, se reemplaza sin dejar uno viejo que
+-- siga rechazando los kinds nuevos. Idempotente.
 do $$
+declare
+  c record;
 begin
-  alter table runs drop constraint if exists runs_kind_check;
+  for c in
+    select conname from pg_constraint
+    where conrelid = 'runs'::regclass
+      and contype = 'c'
+      and pg_get_constraintdef(oid) ilike '%kind%'
+  loop
+    execute format('alter table runs drop constraint %I', c.conname);
+  end loop;
   alter table runs add constraint runs_kind_check
     check (kind in ('poll','process','notify','health','engage','followup','inbound'));
 end $$;
