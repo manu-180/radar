@@ -36,6 +36,23 @@ switch), documentado en [`DEPLOY.md`](./DEPLOY.md). El sistema arranca en modo
 - **Secretos generados** (CRON_SECRET, AUTH_SECRET, WEBHOOK_SECRET): se entregaron a
   Manuel por chat (no se commitean). Pegar en las env vars de Vercel al deployar.
 
+### Activación en curso (datos confirmados con Manuel — sesión 3)
+- **Supabase del radar:** proyecto ref **`eurhkkwhsolvixvwlgto`**. Manuel pasa un
+  Personal Access Token para aplicar las migraciones (vía MCP o Management API
+  `POST https://api.supabase.com/v1/projects/eurhkkwhsolvixvwlgto/database/query`).
+  Aplicar en orden `0001`→`0010` + `supabase/cron.sql` (con el `app_url` real).
+- **WhatsApp = reusar la Evolution API de apex-leads** (misma de Railway). Verificado:
+  el cliente del radar (`lib/notify/evolution.ts`) usa exactamente la misma forma
+  (`POST /message/sendText/{instancia}`, header `apikey`) → reuse drop-in.
+  - `EVOLUTION_API_URL=https://evolution-api-production-3571.up.railway.app`
+  - `EVOLUTION_API_KEY`: en `apex_hunter/apex-leads/.env.local` (no se commitea).
+  - `EVOLUTION_INSTANCE`: elegir una instancia `open`. Disponibles al 2026-06-13:
+    `wa-sim-01`, `wa-sim-02`, `wa-manu-01`, `wa-manu-celu-viejo`, `wa-juli`,
+    `wa-manu-prueba-celu-nuevo`. (Recomendado: una de repuesto, ej. `wa-sim-01`.)
+- **Inputs que faltan de Manuel:** token de Supabase · instancia Evolution a usar ·
+  Bluesky handle + app password · Anthropic API key (¿reusar la de apex o nueva?) ·
+  DASHBOARD_PASSWORD · OWNER_WHATSAPP (+549…) · OK para deploy en Vercel.
+
 ### Sesión 2 — hardening (sin pasos manuales pendientes en el código)
 - **Webhook secret con fallback por query param** (`verifyWebhookSecret`): además
   del header `x-webhook-secret`, acepta `?s=<secret>` en la URL. Resuelve el caso
