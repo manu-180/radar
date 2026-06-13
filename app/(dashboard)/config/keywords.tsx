@@ -43,7 +43,8 @@ const LANG_OPTIONS: { value: KeywordLang; label: string }[] = [
 ];
 
 /** Clases compartidas de inputs y selects. */
-const FIELD_CLASS = "rounded-md border border-zinc-300 px-2 py-1.5 text-sm";
+const FIELD_CLASS =
+  "rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)] focus-ring";
 
 /**
  * Formulario para agregar una keyword nueva.
@@ -76,9 +77,9 @@ export function AddKeywordForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex flex-wrap items-end gap-3 rounded-lg border border-zinc-200 p-3"
+      className="flex flex-wrap items-end gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3"
     >
-      <label className="flex flex-col gap-1 text-xs font-medium text-zinc-500">
+      <label className="flex flex-col gap-1 text-xs font-medium text-[var(--muted)]">
         Término
         <input
           type="text"
@@ -90,7 +91,7 @@ export function AddKeywordForm() {
         />
       </label>
 
-      <label className="flex flex-col gap-1 text-xs font-medium text-zinc-500">
+      <label className="flex flex-col gap-1 text-xs font-medium text-[var(--muted)]">
         Tipo
         <select
           value={kind}
@@ -105,7 +106,7 @@ export function AddKeywordForm() {
         </select>
       </label>
 
-      <label className="flex flex-col gap-1 text-xs font-medium text-zinc-500">
+      <label className="flex flex-col gap-1 text-xs font-medium text-[var(--muted)]">
         Idioma
         <select
           value={lang}
@@ -123,13 +124,13 @@ export function AddKeywordForm() {
       <button
         type="submit"
         disabled={pending || !term.trim()}
-        className="rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60"
+        className="inline-flex items-center rounded-lg bg-[var(--accent)] px-3.5 py-2 text-sm font-medium text-[var(--accent-fg)] transition-colors hover:bg-[var(--accent-hover)] focus-ring disabled:opacity-50 disabled:pointer-events-none"
       >
         Agregar
       </button>
 
       {error && (
-        <p role="alert" className="w-full text-sm text-red-600">
+        <p role="alert" className="w-full text-sm text-[var(--danger-soft-fg)]">
           {error}
         </p>
       )}
@@ -169,7 +170,7 @@ export function KeywordRow({ keyword }: { keyword: Keyword }) {
   }
 
   return (
-    <li className="space-y-2 rounded-md border border-zinc-200 p-3">
+    <li className="space-y-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
       <div className="flex flex-wrap items-center gap-2">
         <input
           type="text"
@@ -177,7 +178,7 @@ export function KeywordRow({ keyword }: { keyword: Keyword }) {
           onChange={(event) => setTerm(event.target.value)}
           aria-label="Término de la keyword"
           className={`${FIELD_CLASS} min-w-64 flex-1 ${
-            keyword.enabled ? "" : "text-zinc-400"
+            keyword.enabled ? "" : "text-[var(--subtle)]"
           }`}
         />
 
@@ -210,8 +211,8 @@ export function KeywordRow({ keyword }: { keyword: Keyword }) {
         <span
           className={`rounded-full px-2 py-0.5 text-xs font-medium ${
             keyword.enabled
-              ? "bg-green-100 text-green-800"
-              : "bg-zinc-100 text-zinc-500"
+              ? "bg-[var(--ok-soft)] text-[var(--ok-soft-fg)]"
+              : "bg-[var(--neutral-soft)] text-[var(--neutral-soft-fg)]"
           }`}
         >
           {keyword.enabled ? "Activa" : "Inactiva"}
@@ -223,7 +224,7 @@ export function KeywordRow({ keyword }: { keyword: Keyword }) {
           onClick={() =>
             run(() => updateKeyword(keyword.id, { term, kind, lang }))
           }
-          className="rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60"
+          className="inline-flex items-center rounded-lg bg-[var(--accent)] px-3.5 py-2 text-sm font-medium text-[var(--accent-fg)] transition-colors hover:bg-[var(--accent-hover)] focus-ring disabled:opacity-50 disabled:pointer-events-none"
         >
           Guardar
         </button>
@@ -232,7 +233,7 @@ export function KeywordRow({ keyword }: { keyword: Keyword }) {
           type="button"
           disabled={pending}
           onClick={() => run(() => toggleKeyword(keyword.id, !keyword.enabled))}
-          className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-60"
+          className="inline-flex items-center rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3.5 py-2 text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--surface-2)] focus-ring disabled:opacity-50 disabled:pointer-events-none"
         >
           {keyword.enabled ? "Desactivar" : "Activar"}
         </button>
@@ -241,14 +242,14 @@ export function KeywordRow({ keyword }: { keyword: Keyword }) {
           type="button"
           disabled={pending}
           onClick={() => run(() => deleteKeyword(keyword.id))}
-          className="rounded-md border border-red-300 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-60"
+          className="inline-flex items-center rounded-lg border border-[var(--danger-soft)] bg-[var(--surface)] px-3.5 py-2 text-sm font-medium text-[var(--danger-soft-fg)] transition-colors hover:bg-[var(--danger-soft)] focus-ring disabled:opacity-50 disabled:pointer-events-none"
         >
           Borrar
         </button>
       </div>
 
       {error && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-[var(--danger-soft-fg)]">
           {error}
         </p>
       )}

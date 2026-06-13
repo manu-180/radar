@@ -41,3 +41,19 @@ export function verifyCronSecret(request: Request): boolean {
   if (!provided) return false;
   return timingSafeEqualStr(provided, env.CRON_SECRET);
 }
+
+/**
+ * Verifica que un request traiga el header `x-webhook-secret` correcto.
+ *
+ * Protege los webhooks entrantes de los canales (`/api/inbound/*`). Si
+ * `WEBHOOK_SECRET` no está configurado, devuelve `false` siempre: sin secreto,
+ * los webhooks quedan cerrados y el outreach automático no recibe nada (modo
+ * seguro por defecto).
+ */
+export function verifyWebhookSecret(request: Request): boolean {
+  const secret = env.WEBHOOK_SECRET;
+  if (!secret) return false;
+  const provided = request.headers.get("x-webhook-secret");
+  if (!provided) return false;
+  return timingSafeEqualStr(provided, secret);
+}

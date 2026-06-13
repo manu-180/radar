@@ -102,6 +102,10 @@ export async function POST(
       const lang = detectLang(`${item.title} ${item.body}`);
       const result = prefilter(item, lang, keywords);
       const queueStatus = result.passed ? "pending" : "skipped";
+      // Datos de contacto para el outreach de v2: sólo los traen las fuentes
+      // cuyo autor es contactable. Se setean siempre (a `null` si no hay) para
+      // que todas las filas del lote tengan las mismas columnas en el upsert.
+      const contact = item.contact ?? null;
       return {
         source: slug,
         external_id: item.externalId,
@@ -116,6 +120,10 @@ export async function POST(
         prefilter_matched: result.matched,
         llm_status: queueStatus,
         notify_status: queueStatus,
+        contact_channel: contact?.channel ?? null,
+        contact_key: contact?.key ?? null,
+        contact_ref: contact?.ref ?? null,
+        contact_handle: contact?.handle ?? null,
       };
     });
 

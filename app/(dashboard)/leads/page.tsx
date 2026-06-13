@@ -13,8 +13,12 @@ import Link from "next/link";
 import { getAdminClient } from "@/lib/supabase/admin";
 
 import { CATEGORY_BADGE, FEEDBACK_LABELS, NOTIFY_LABELS } from "../labels";
+import { Card, EmptyState, ErrorNote, PageHeader } from "../ui";
 
 export const metadata: Metadata = { title: "Leads" };
+
+/** Render dinámico: depende de `searchParams` y del estado vivo de la base. */
+export const dynamic = "force-dynamic";
 
 /** Cantidad de leads por página. */
 const PAGE_SIZE = 50;
@@ -187,25 +191,28 @@ export default async function LeadsPage({
   const rows = (data ?? []) as LeadListRow[];
 
   const fieldClass =
-    "rounded-md border border-zinc-300 px-2 py-1.5 text-sm";
+    "rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)] focus-ring";
 
   return (
-    <section className="space-y-4">
-      <div className="flex items-baseline justify-between gap-4">
-        <h1 className="text-lg font-semibold">Leads</h1>
-        <span className="text-sm text-zinc-500">
-          {total} {total === 1 ? "lead" : "leads"}
-        </span>
-      </div>
+    <section className="space-y-6">
+      <PageHeader
+        title="Leads"
+        subtitle="Los candidatos detectados en las plataformas, clasificados por la IA."
+        actions={
+          <span className="text-sm text-[var(--muted)]">
+            {total} {total === 1 ? "lead" : "leads"}
+          </span>
+        }
+      />
 
       {/* Filtros: form GET, así cada filtro queda en la URL. Sin campo `page`,
           de modo que filtrar vuelve siempre a la primera página. */}
       <form
         method="get"
         action="/leads"
-        className="flex flex-wrap items-end gap-3 rounded-lg border border-zinc-200 p-3"
+        className="flex flex-wrap items-end gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3"
       >
-        <label className="flex flex-col gap-1 text-xs font-medium text-zinc-500">
+        <label className="flex flex-col gap-1 text-xs font-medium text-[var(--muted)]">
           Fuente
           <select name="source" defaultValue={source} className={fieldClass}>
             <option value="">Todas las fuentes</option>
@@ -217,7 +224,7 @@ export default async function LeadsPage({
           </select>
         </label>
 
-        <label className="flex flex-col gap-1 text-xs font-medium text-zinc-500">
+        <label className="flex flex-col gap-1 text-xs font-medium text-[var(--muted)]">
           Categoría
           <select
             name="category"
@@ -232,7 +239,7 @@ export default async function LeadsPage({
           </select>
         </label>
 
-        <label className="flex flex-col gap-1 text-xs font-medium text-zinc-500">
+        <label className="flex flex-col gap-1 text-xs font-medium text-[var(--muted)]">
           Estado IA
           <select
             name="llm_status"
@@ -247,7 +254,7 @@ export default async function LeadsPage({
           </select>
         </label>
 
-        <label className="flex flex-col gap-1 text-xs font-medium text-zinc-500">
+        <label className="flex flex-col gap-1 text-xs font-medium text-[var(--muted)]">
           Feedback
           <select
             name="feedback"
@@ -262,7 +269,7 @@ export default async function LeadsPage({
           </select>
         </label>
 
-        <label className="flex flex-col gap-1 text-xs font-medium text-zinc-500">
+        <label className="flex flex-col gap-1 text-xs font-medium text-[var(--muted)]">
           Buscar en el título
           <input
             type="search"
@@ -275,117 +282,118 @@ export default async function LeadsPage({
 
         <button
           type="submit"
-          className="rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-700"
+          className="inline-flex items-center rounded-lg bg-[var(--accent)] px-3.5 py-2 text-sm font-medium text-[var(--accent-fg)] hover:bg-[var(--accent-hover)] focus-ring"
         >
           Filtrar
         </button>
         <Link
           href="/leads"
-          className="rounded-md px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-100"
+          className="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-[var(--muted)] hover:bg-[var(--surface-2)] focus-ring"
         >
           Limpiar
         </Link>
       </form>
 
       {error ? (
-        <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          No se pudieron cargar los leads: {error.message}
-        </p>
+        <ErrorNote>No se pudieron cargar los leads: {error.message}</ErrorNote>
       ) : rows.length === 0 ? (
-        <p className="rounded-md border border-zinc-200 p-6 text-center text-sm text-zinc-500">
-          No hay leads que coincidan con estos filtros.
-        </p>
+        <EmptyState
+          title="No hay leads que coincidan"
+          description="Probá aflojar los filtros, o esperá a que el próximo poll traiga candidatos nuevos."
+        />
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-zinc-200">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-zinc-200 text-left text-xs uppercase tracking-wide text-zinc-500">
-                <th className="px-3 py-2 font-medium">Fuente</th>
-                <th className="px-3 py-2 font-medium">Título</th>
-                <th className="px-3 py-2 text-right font-medium">Score</th>
-                <th className="px-3 py-2 font-medium">Categoría</th>
-                <th className="px-3 py-2 font-medium">Fecha del post</th>
-                <th className="px-3 py-2 font-medium">Notificación</th>
-                <th className="px-3 py-2 font-medium">Feedback</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((lead) => (
-                <tr
-                  key={lead.id}
-                  className="border-b border-zinc-100 last:border-0 hover:bg-zinc-50"
-                >
-                  <td className="px-3 py-2 whitespace-nowrap text-zinc-600">
-                    {sourceName.get(lead.source) ?? lead.source}
-                  </td>
-                  <td className="px-3 py-2">
-                    <Link
-                      href={`/leads/${lead.id}`}
-                      className="font-medium text-zinc-900 hover:underline"
-                    >
-                      {shortTitle(lead.title)}
-                    </Link>
-                  </td>
-                  <td className="px-3 py-2 text-right tabular-nums text-zinc-600">
-                    {lead.score ?? "—"}
-                  </td>
-                  <td className="px-3 py-2">
-                    {lead.category ? (
-                      <span
-                        className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${CATEGORY_BADGE[lead.category]}`}
-                      >
-                        {lead.category}
-                      </span>
-                    ) : (
-                      <span className="text-zinc-400">—</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2 whitespace-nowrap text-zinc-600">
-                    {formatDate(lead.posted_at)}
-                  </td>
-                  <td className="px-3 py-2 whitespace-nowrap text-zinc-600">
-                    {NOTIFY_LABELS[lead.notify_status] ?? lead.notify_status}
-                  </td>
-                  <td className="px-3 py-2 whitespace-nowrap text-zinc-600">
-                    {lead.feedback
-                      ? (FEEDBACK_LABELS[lead.feedback] ?? lead.feedback)
-                      : "—"}
-                  </td>
+        <Card className="overflow-hidden">
+          <div className="overflow-x-auto scroll-elegant">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[var(--border)] text-left text-xs uppercase tracking-wide text-[var(--muted)]">
+                  <th className="px-4 py-3 font-medium">Fuente</th>
+                  <th className="px-4 py-3 font-medium">Título</th>
+                  <th className="px-4 py-3 text-right font-medium">Score</th>
+                  <th className="px-4 py-3 font-medium">Categoría</th>
+                  <th className="px-4 py-3 font-medium">Fecha del post</th>
+                  <th className="px-4 py-3 font-medium">Notificación</th>
+                  <th className="px-4 py-3 font-medium">Feedback</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {rows.map((lead) => (
+                  <tr
+                    key={lead.id}
+                    className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--surface-2)]"
+                  >
+                    <td className="px-4 py-3 whitespace-nowrap text-[var(--muted)]">
+                      {sourceName.get(lead.source) ?? lead.source}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Link
+                        href={`/leads/${lead.id}`}
+                        className="font-medium text-[var(--foreground)] hover:text-[var(--accent)] hover:underline"
+                      >
+                        {shortTitle(lead.title)}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums text-[var(--muted)]">
+                      {lead.score ?? "—"}
+                    </td>
+                    <td className="px-4 py-3">
+                      {lead.category ? (
+                        <span
+                          className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${CATEGORY_BADGE[lead.category]}`}
+                        >
+                          {lead.category}
+                        </span>
+                      ) : (
+                        <span className="text-[var(--subtle)]">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-[var(--muted)]">
+                      {formatDate(lead.posted_at)}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-[var(--muted)]">
+                      {NOTIFY_LABELS[lead.notify_status] ?? lead.notify_status}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-[var(--muted)]">
+                      {lead.feedback
+                        ? (FEEDBACK_LABELS[lead.feedback] ?? lead.feedback)
+                        : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
 
       {/* Paginación: conserva los filtros activos en cada enlace. */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between text-sm">
-          <span className="text-zinc-500">
+          <span className="text-[var(--muted)]">
             Página {page} de {totalPages}
           </span>
           <div className="flex gap-2">
             {page > 1 ? (
               <Link
                 href={buildHref(activeFilters, page - 1)}
-                className="rounded-md border border-zinc-300 px-3 py-1.5 font-medium text-zinc-700 hover:bg-zinc-100"
+                className="rounded-lg border border-[var(--border-strong)] px-3 py-1.5 font-medium text-[var(--foreground)] hover:bg-[var(--surface-2)] focus-ring"
               >
                 Anterior
               </Link>
             ) : (
-              <span className="rounded-md border border-zinc-200 px-3 py-1.5 font-medium text-zinc-300">
+              <span className="rounded-lg border border-[var(--border)] px-3 py-1.5 font-medium text-[var(--subtle)]">
                 Anterior
               </span>
             )}
             {page < totalPages ? (
               <Link
                 href={buildHref(activeFilters, page + 1)}
-                className="rounded-md border border-zinc-300 px-3 py-1.5 font-medium text-zinc-700 hover:bg-zinc-100"
+                className="rounded-lg border border-[var(--border-strong)] px-3 py-1.5 font-medium text-[var(--foreground)] hover:bg-[var(--surface-2)] focus-ring"
               >
                 Siguiente
               </Link>
             ) : (
-              <span className="rounded-md border border-zinc-200 px-3 py-1.5 font-medium text-zinc-300">
+              <span className="rounded-lg border border-[var(--border)] px-3 py-1.5 font-medium text-[var(--subtle)]">
                 Siguiente
               </span>
             )}

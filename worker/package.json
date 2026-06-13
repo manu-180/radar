@@ -1,0 +1,21 @@
+{
+  "name": "radar-telegram-worker",
+  "version": "1.0.0",
+  "description": "Always-on Telegram MTProto bridge for the Radar app (Railway service)",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node --import tsx/esm src/index.ts",
+    "dev": "node --import tsx/esm --watch src/index.ts"
+  },
+  "dependencies": {
+    "big-integer": "^1.6.52",
+    "telegram": "^2.26.22"
+  },
+  "devDependencies": {
+    "tsx": "^4",
+    "typescript": "^5"
+  }
+}

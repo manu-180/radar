@@ -131,11 +131,70 @@ function withTimeout<T>(
   });
 }
 
-/** Forma parcial de un mensaje de GramJS, con los campos que usamos. */
+/**
+ * Forma parcial de un mensaje de GramJS, con los campos que usamos.
+ *
+ * `fromId` y `sender` son best-effort para el contacto de v2: en posts de un
+ * canal de difusión (broadcast) no hay remitente individual y vienen ausentes;
+ * en grupos/supergrupos suele venir `fromId` (un `PeerUser` con `userId`) y, si
+ * GramJS resolvió la entidad, un `sender` con `accessHash`.
+ */
 interface TelegramMessage {
   id: number;
   message?: string;
   date?: number;
+  /** Remitente como `Peer`; en grupos es un `PeerUser` con `userId`. */
+  fromId?: { userId?: unknown; className?: string } | null;
+  /** Entidad del remitente ya resuelta (si GramJS la trajo). */
+  sender?: { id?: unknown; accessHash?: unknown; username?: string | null; firstName?: string | null } | null;
+}
+
+/** Convierte un valor `bigInt`/number/string de GramJS a string; `null` si no se puede. */
+function bigIntToString(value: unknown): string | null {
+  if (value === undefined || value === null) return null;
+  if (typeof value === "string" && value.length > 0) return value;
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  if (typeof value === "bigint") return value.toString();
+  // GramJS usa una clase `Integer`/`BigInteger` con `toString` propio.
+  if (typeof value === "object" && typeof (value as { toString?: unknown }).toString === "function") {
+    const s = (value as { toString(): string }).toString();
+    return /^-?\d+$/.test(s) ? s : null;
+  }
+  return null;
+}
+
+/**
+ * Arma el contacto (v2) de un mensaje **best-effort**.
+ *
+ * Sólo devuelve un contacto cuando hay un remitente individual identificable
+ * (`fromId.userId` o `sender.id`): así, los posts de canales de difusión —sin
+ * remitente individual— quedan sin contacto (se detecta el lead pero no se
+ * auto-engancha). El `accessHash` se incluye si la entidad del remitente ya
+ * estaba resuelta; sin él, el envío por el worker puede seguir funcionando si el
+ * peer ya es conocido. Nunca lanza: ante cualquier forma inesperada, `null`.
+ */
+function toContact(message: TelegramMessage): RawItem["contact"] {
+  const userId =
+    bigIntToString(message.fromId?.userId) ?? bigIntToString(message.sender?.id);
+  if (!userId) return null;
+
+  const accessHash = bigIntToString(message.sender?.accessHash);
+  const username =
+    typeof message.sender?.username === "string" && message.sender.username.length > 0
+      ? message.sender.username
+      : null;
+  const firstName =
+    typeof message.sender?.firstName === "string" && message.sender.firstName.length > 0
+      ? message.sender.firstName
+      : null;
+
+  return {
+    channel: "telegram",
+    key: userId,
+    // `accessHash` opaco en `ref`; el worker lo usa para direccionar el DM.
+    ref: accessHash ? { accessHash } : {},
+    handle: username ? `@${username}` : firstName,
+  };
 }
 
 /** Mapea un mensaje de un canal a la forma neutral {@link RawItem}. */
@@ -158,6 +217,8 @@ function toRawItem(message: TelegramMessage, channel: string): RawItem {
         ? new Date(message.date * 1000).toISOString()
         : null,
     raw: message,
+    // Best-effort: sólo presente si hay un remitente individual identificable.
+    contact: toContact(message),
   };
 }
 

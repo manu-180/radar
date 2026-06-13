@@ -1,26 +1,199 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/**
+ * Design tokens del command-center.
+ *
+ * Una paleta neutra refinada (zinc) + un acento (indigo) + colores de estado
+ * (verde activo/ganado, ámbar en espera, rojo perdido, azul handoff). Todos los
+ * tokens tienen variante dark; el tema sigue `prefers-color-scheme`. Las
+ * superficies (`surface`, `surface-2`), el borde y el texto se exponen como
+ * variables para que el panel entero comparta el mismo lenguaje visual.
+ */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+:root {
+  /* Lienzo y superficies */
+  --background: #fafafa;
+  --surface: #ffffff;
+  --surface-2: #f4f4f5;
+  --surface-hover: #f4f4f5;
+
+  /* Texto */
+  --foreground: #18181b;
+  --muted: #52525b;
+  --subtle: #a1a1aa;
+
+  /* Bordes */
+  --border: #e4e4e7;
+  --border-strong: #d4d4d8;
+
+  /* Acento (indigo) */
+  --accent: #4f46e5;
+  --accent-hover: #4338ca;
+  --accent-fg: #ffffff;
+  --accent-soft: #eef2ff;
+  --accent-soft-fg: #3730a3;
+
+  /* Estados — soft bg + texto, para badges */
+  --ok-soft: #dcfce7;
+  --ok-soft-fg: #166534;
+  --ok-solid: #22c55e;
+
+  --warn-soft: #fef3c7;
+  --warn-soft-fg: #92400e;
+  --warn-solid: #f59e0b;
+
+  --danger-soft: #fee2e2;
+  --danger-soft-fg: #991b1b;
+  --danger-solid: #ef4444;
+
+  --info-soft: #dbeafe;
+  --info-soft-fg: #1e40af;
+  --info-solid: #3b82f6;
+
+  --neutral-soft: #f4f4f5;
+  --neutral-soft-fg: #52525b;
+
+  --ring: #6366f1;
+  --shadow-color: 240 5% 65%;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #09090b;
+    --surface: #121214;
+    --surface-2: #1c1c1f;
+    --surface-hover: #1c1c1f;
+
+    --foreground: #f4f4f5;
+    --muted: #a1a1aa;
+    --subtle: #71717a;
+
+    --border: #27272a;
+    --border-strong: #3f3f46;
+
+    --accent: #6366f1;
+    --accent-hover: #818cf8;
+    --accent-fg: #ffffff;
+    --accent-soft: #1e1b4b;
+    --accent-soft-fg: #c7d2fe;
+
+    --ok-soft: #052e16;
+    --ok-soft-fg: #86efac;
+    --ok-solid: #22c55e;
+
+    --warn-soft: #422006;
+    --warn-soft-fg: #fcd34d;
+    --warn-solid: #f59e0b;
+
+    --danger-soft: #450a0a;
+    --danger-soft-fg: #fca5a5;
+    --danger-solid: #ef4444;
+
+    --info-soft: #172554;
+    --info-soft-fg: #93c5fd;
+    --info-solid: #3b82f6;
+
+    --neutral-soft: #27272a;
+    --neutral-soft-fg: #a1a1aa;
+
+    --ring: #818cf8;
+    --shadow-color: 240 6% 4%;
   }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-soft-fg: var(--accent-soft-fg);
+
+  --color-ok-soft: var(--ok-soft);
+  --color-ok-soft-fg: var(--ok-soft-fg);
+  --color-ok-solid: var(--ok-solid);
+  --color-warn-soft: var(--warn-soft);
+  --color-warn-soft-fg: var(--warn-soft-fg);
+  --color-warn-solid: var(--warn-solid);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-soft-fg: var(--danger-soft-fg);
+  --color-danger-solid: var(--danger-solid);
+  --color-info-soft: var(--info-soft);
+  --color-info-soft-fg: var(--info-soft-fg);
+  --color-info-solid: var(--info-solid);
+  --color-neutral-soft: var(--neutral-soft);
+  --color-neutral-soft-fg: var(--neutral-soft-fg);
+
+  --color-ring: var(--ring);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Foco visible y consistente en todo el panel (accesibilidad). */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 0.375rem;
+}
+
+/* Anillo de foco más prolijo para controles que ya tienen su propio radio. */
+.focus-ring:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Scrollbar sutil dentro de paneles con scroll (chat, listas). */
+.scroll-elegant {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+.scroll-elegant::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scroll-elegant::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 9999px;
+}
+.scroll-elegant::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Entrada suave de tarjetas/filas al cargar la vista. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.animate-rise {
+  animation: rise 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise {
+    animation: none;
+  }
 }

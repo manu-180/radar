@@ -52,10 +52,10 @@ function Field({
 }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+      <dt className="text-xs font-medium uppercase tracking-wide text-[var(--subtle)]">
         {label}
       </dt>
-      <dd className="text-sm text-zinc-800">{children}</dd>
+      <dd className="text-sm text-[var(--foreground)]">{children}</dd>
     </div>
   );
 }
@@ -83,10 +83,13 @@ export default async function LeadDetailPage({
   if (error) {
     return (
       <section className="space-y-4">
-        <Link href="/leads" className="text-sm text-zinc-600 hover:underline">
+        <Link
+          href="/leads"
+          className="text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:underline"
+        >
           ← Volver a leads
         </Link>
-        <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        <p className="rounded-lg border border-[var(--danger-soft)] bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger-soft-fg)]">
           No se pudo cargar el lead: {error.message}
         </p>
       </section>
@@ -109,17 +112,23 @@ export default async function LeadDetailPage({
   return (
     <section className="max-w-3xl space-y-6">
       <div className="space-y-2">
-        <Link href="/leads" className="text-sm text-zinc-600 hover:underline">
-          ← Volver a leads
+        <Link
+          href="/leads"
+          className="inline-flex items-center gap-1 text-sm text-[var(--muted)] hover:text-[var(--foreground)] focus-ring"
+        >
+          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.8} aria-hidden>
+            <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Volver a leads
         </Link>
-        <h1 className="text-xl font-semibold text-zinc-900">
+        <h1 className="text-xl font-semibold tracking-tight text-[var(--foreground)]">
           {lead.title?.trim() || "(sin título)"}
         </h1>
       </div>
 
       {/* --- Contexto del post --- */}
-      <article className="space-y-4 rounded-lg border border-zinc-200 p-4">
-        <h2 className="text-sm font-semibold text-zinc-900">Contexto</h2>
+      <article className="space-y-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
+        <h2 className="text-sm font-semibold text-[var(--foreground)]">Contexto</h2>
         <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <Field label="Fuente">{sourceName}</Field>
           <Field label="Autor">{lead.author?.trim() || "—"}</Field>
@@ -137,15 +146,15 @@ export default async function LeadDetailPage({
         </dl>
 
         <div className="space-y-1">
-          <h3 className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+          <h3 className="text-xs font-medium uppercase tracking-wide text-[var(--subtle)]">
             Cuerpo del post
           </h3>
           {lead.body?.trim() ? (
-            <p className="whitespace-pre-wrap text-sm text-zinc-800">
+            <p className="whitespace-pre-wrap text-sm text-[var(--foreground)]">
               {lead.body}
             </p>
           ) : (
-            <p className="text-sm text-zinc-400">(sin cuerpo)</p>
+            <p className="text-sm text-[var(--subtle)]">(sin cuerpo)</p>
           )}
         </div>
 
@@ -154,16 +163,19 @@ export default async function LeadDetailPage({
             href={lead.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-block text-sm font-medium text-blue-700 hover:underline"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--accent)] hover:underline focus-ring"
           >
-            🔗 Ver post original
+            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={1.8} aria-hidden>
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Ver post original
           </a>
         )}
       </article>
 
       {/* --- Clasificación de la IA --- */}
-      <article className="space-y-4 rounded-lg border border-zinc-200 p-4">
-        <h2 className="text-sm font-semibold text-zinc-900">
+      <article className="space-y-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
+        <h2 className="text-sm font-semibold text-[var(--foreground)]">
           Clasificación de la IA
         </h2>
         <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -198,12 +210,12 @@ export default async function LeadDetailPage({
         </dl>
 
         <div className="space-y-1">
-          <h3 className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+          <h3 className="text-xs font-medium uppercase tracking-wide text-[var(--subtle)]">
             Razón
           </h3>
-          <p className="text-sm text-zinc-800">
+          <p className="text-sm text-[var(--foreground)]">
             {lead.reason?.trim() || (
-              <span className="text-zinc-400">
+              <span className="text-[var(--subtle)]">
                 Todavía sin clasificar por la IA.
               </span>
             )}
@@ -211,7 +223,7 @@ export default async function LeadDetailPage({
         </div>
 
         <div className="space-y-1">
-          <h3 className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+          <h3 className="text-xs font-medium uppercase tracking-wide text-[var(--subtle)]">
             Términos del pre-filtro
           </h3>
           {prefilterTerms.length > 0 ? (
@@ -219,50 +231,50 @@ export default async function LeadDetailPage({
               {prefilterTerms.map((term) => (
                 <li
                   key={term}
-                  className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-700"
+                  className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-xs text-[var(--muted)]"
                 >
                   {term}
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-zinc-400">
+            <p className="text-sm text-[var(--subtle)]">
               Ninguno (el lead no pasó por el pre-filtro de keywords).
             </p>
           )}
         </div>
 
         {lead.llm_error && (
-          <p className="rounded-md border border-red-200 bg-red-50 p-2 text-sm text-red-700">
+          <p className="rounded-lg border border-[var(--danger-soft)] bg-[var(--danger-soft)] p-2 text-sm text-[var(--danger-soft-fg)]">
             Error de clasificación: {lead.llm_error}
           </p>
         )}
       </article>
 
       {/* --- Mensaje sugerido --- */}
-      <article className="space-y-3 rounded-lg border border-zinc-200 p-4">
+      <article className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
         <div className="flex items-center justify-between gap-4">
-          <h2 className="text-sm font-semibold text-zinc-900">
+          <h2 className="text-sm font-semibold text-[var(--foreground)]">
             Mensaje sugerido
           </h2>
           {suggestedReply && <CopyButton text={suggestedReply} />}
         </div>
         {suggestedReply ? (
-          <p className="whitespace-pre-wrap rounded-md bg-zinc-50 p-3 text-sm text-zinc-800">
+          <p className="whitespace-pre-wrap rounded-lg bg-[var(--surface-2)] p-3 text-sm text-[var(--foreground)]">
             {suggestedReply}
           </p>
         ) : (
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-[var(--subtle)]">
             La IA no propuso un mensaje para este lead.
           </p>
         )}
       </article>
 
       {/* --- Feedback --- */}
-      <article className="space-y-3 rounded-lg border border-zinc-200 p-4">
+      <article className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
         <div className="space-y-1">
-          <h2 className="text-sm font-semibold text-zinc-900">Feedback</h2>
-          <p className="text-xs text-zinc-500">
+          <h2 className="text-sm font-semibold text-[var(--foreground)]">Feedback</h2>
+          <p className="text-xs text-[var(--muted)]">
             Lo usa el clasificador como ejemplo para calibrarse.
             {lead.feedback_at
               ? ` Última marca: ${formatDateTime(lead.feedback_at)}.`

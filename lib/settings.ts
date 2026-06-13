@@ -17,7 +17,9 @@ import "server-only";
 
 import { z } from "zod";
 
+import type { AgentPlaybook } from "@/lib/ai/agent";
 import { getAdminClient } from "@/lib/supabase/admin";
+import { CHANNELS, type Channel } from "@/types/autopilot";
 
 /** Categorías de lead válidas; alineadas con el `check` de `leads.category`. */
 export const LEAD_CATEGORIES = ["hiring", "maybe", "noise"] as const;
@@ -141,5 +143,143 @@ export async function loadNotifySettings(): Promise<NotifySettings> {
       byKey.get("max_notifications_per_run"),
       DEFAULT_MAX_NOTIFICATIONS_PER_RUN,
     ),
+  };
+}
+
+// ─── Autopilot (v2) ──────────────────────────────────────────────────────────
+
+/** Playbook por defecto del closer si la clave falta o es inválida. */
+export const DEFAULT_PLAYBOOK: AgentPlaybook = {
+  persona:
+    "Sos un desarrollador freelance argentino, cercano y profesional. Hablás en español rioplatense, claro y sin vueltas, sin sonar a bot ni a vendedor agresivo.",
+  offer:
+    "Hacés páginas web y apps a medida con Next.js, React y back-ends modernos (Supabase). Entrega rápida, diseño prolijo y precios competitivos.",
+  pricing:
+    "Una landing simple arranca en USD 150-300; un sitio con varias secciones USD 300-700; una web app a medida se cotiza según alcance.",
+  tone:
+    "Cálido, directo, humano. Mensajes cortos de WhatsApp/DM. Una idea por mensaje. Una sola pregunta por vez.",
+  goal:
+    "Entender qué necesita, generar confianza y llevarlo a que pida una propuesta o un boceto. Cuando lo pida, handoff al dueño.",
+  handoff_triggers:
+    "pide un boceto o mockup, pide una propuesta o presupuesto formal, quiere agendar una llamada, pide hablar con la persona, o ya hay acuerdo de avanzar.",
+};
+
+export const DEFAULT_ENGAGE_RULE: NotifyRule = {
+  categories: ["hiring"],
+  minScore: 75,
+};
+export const DEFAULT_CHANNEL_AUTOPILOT: Record<Channel, boolean> = {
+  telegram: true,
+  bluesky: true,
+  whatsapp: true,
+  reddit: false,
+};
+export const DEFAULT_OUTREACH_DAILY_CAP = 20;
+export const DEFAULT_AGENT_MAX_MESSAGES = 12;
+export const DEFAULT_FOLLOWUP_POLICY = { delaysHours: [24, 72], maxFollowups: 2 };
+
+/** Política de reenganche: esperas entre follow-ups y cuántos como máximo. */
+export interface FollowupPolicy {
+  delaysHours: number[];
+  maxFollowups: number;
+}
+
+const playbookSchema = z
+  .object({
+    persona: z.string().min(1),
+    offer: z.string().min(1),
+    pricing: z.string().min(1),
+    tone: z.string().min(1),
+    goal: z.string().min(1),
+    handoff_triggers: z.string().min(1),
+  })
+  .partial();
+
+const channelAutopilotSchema = z
+  .object({
+    telegram: z.boolean(),
+    bluesky: z.boolean(),
+    whatsapp: z.boolean(),
+    reddit: z.boolean(),
+  })
+  .partial();
+
+const followupPolicySchema = z.object({
+  delaysHours: z.array(z.number().min(0)).min(1),
+  maxFollowups: z.number().int().min(0),
+});
+
+const AUTOPILOT_KEYS = [
+  "outreach_enabled",
+  "engage_rule",
+  "channel_autopilot",
+  "outreach_daily_cap",
+  "agent_max_messages",
+  "followup_policy",
+  "agent_playbook",
+] as const;
+
+/** Config completa del autopilot, ya validada y con defaults aplicados. */
+export interface AutopilotSettings {
+  /** Interruptor maestro: si está en `false`, no se contacta a nadie. */
+  outreachEnabled: boolean;
+  /** Regla de elegibilidad para el primer contacto. */
+  engageRule: NotifyRule;
+  /** Autopilot por canal: si un canal está en `false`, no responde solo. */
+  channelAutopilot: Record<Channel, boolean>;
+  /** Tope de primeros contactos por día (anti-ban). */
+  outreachDailyCap: number;
+  /** Tope de mensajes del agente antes de un handoff forzado. */
+  agentMaxMessages: number;
+  /** Política de reenganche. */
+  followupPolicy: FollowupPolicy;
+  /** Playbook del closer. */
+  playbook: AgentPlaybook;
+}
+
+export function parsePlaybook(raw: unknown): AgentPlaybook {
+  const parsed = playbookSchema.safeParse(raw);
+  if (!parsed.success) return DEFAULT_PLAYBOOK;
+  // Mezcla los campos provistos sobre el default (el panel puede guardar parcial).
+  return { ...DEFAULT_PLAYBOOK, ...parsed.data };
+}
+
+export function parseChannelAutopilot(raw: unknown): Record<Channel, boolean> {
+  const parsed = channelAutopilotSchema.safeParse(raw);
+  const base = { ...DEFAULT_CHANNEL_AUTOPILOT };
+  if (parsed.success) {
+    for (const ch of CHANNELS) {
+      const v = parsed.data[ch];
+      if (typeof v === "boolean") base[ch] = v;
+    }
+  }
+  return base;
+}
+
+export function parseFollowupPolicy(raw: unknown): FollowupPolicy {
+  const parsed = followupPolicySchema.safeParse(raw);
+  return parsed.success ? parsed.data : DEFAULT_FOLLOWUP_POLICY;
+}
+
+/** Carga toda la config del autopilot. Relee la tabla en cada corrida. */
+export async function loadAutopilotSettings(): Promise<AutopilotSettings> {
+  const byKey = await readSettings(AUTOPILOT_KEYS);
+
+  const engageRaw = notifyRuleSchema.safeParse(byKey.get("engage_rule"));
+  return {
+    outreachEnabled: byKey.get("outreach_enabled") === true,
+    // `engage_rule` comparte la forma de `notify_rule`, pero su default propio.
+    engageRule: engageRaw.success ? engageRaw.data : DEFAULT_ENGAGE_RULE,
+    channelAutopilot: parseChannelAutopilot(byKey.get("channel_autopilot")),
+    outreachDailyCap: parsePositiveInt(
+      byKey.get("outreach_daily_cap"),
+      DEFAULT_OUTREACH_DAILY_CAP,
+    ),
+    agentMaxMessages: parsePositiveInt(
+      byKey.get("agent_max_messages"),
+      DEFAULT_AGENT_MAX_MESSAGES,
+    ),
+    followupPolicy: parseFollowupPolicy(byKey.get("followup_policy")),
+    playbook: parsePlaybook(byKey.get("agent_playbook")),
   };
 }

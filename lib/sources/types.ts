@@ -9,6 +9,8 @@
 
 import type { ZodType } from "zod";
 
+import type { LeadContact } from "@/types/autopilot";
+
 /**
  * Item crudo de una fuente, ya normalizado a una forma común.
  *
@@ -31,6 +33,13 @@ export interface RawItem {
   postedAt: string | null;
   /** Respuesta original de la fuente, sin transformar. */
   raw: unknown;
+  /**
+   * Cómo contactar al autor para una conversación de outreach (v2). Sólo lo
+   * producen las fuentes cuyo autor es contactable (ej. Telegram en grupos,
+   * Bluesky, Reddit). `null`/ausente = no contactable: el lead se detecta y se
+   * avisa, pero no se auto-engancha.
+   */
+  contact?: LeadContact | null;
 }
 
 /**

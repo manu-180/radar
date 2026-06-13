@@ -72,6 +72,26 @@ const schema = z.object({
   TELEGRAM_API_HASH: z.string().min(1).optional(),
   TELEGRAM_SESSION: z.string().min(1).optional(),
   SCRAPER_API_KEY: z.string().min(1).optional(),
+
+  // --- Autopilot (v2): canales de conversación + webhooks ---
+  // Todas opcionales: sin ellas, ese canal queda inerte y la app arranca igual.
+  // Protege los webhooks entrantes (`/api/inbound/*`). Sin esto, los webhooks
+  // rechazan todo: el outreach automático queda efectivamente apagado.
+  WEBHOOK_SECRET: z
+    .string()
+    .min(16, "WEBHOOK_SECRET debe ser un string aleatorio largo (mín. 16 caracteres)")
+    .optional(),
+  // URL pública del worker de Telegram en Railway (para mandar y recibir DMs).
+  TELEGRAM_WORKER_URL: z
+    .url({ error: "TELEGRAM_WORKER_URL debe ser una URL válida" })
+    .optional(),
+  // Bluesky: identificador (handle o email) + app password (NO la real).
+  BLUESKY_IDENTIFIER: z.string().min(1).optional(),
+  BLUESKY_APP_PASSWORD: z.string().min(1).optional(),
+  // Reddit: credenciales de una "script app" + refresh token (OAuth).
+  REDDIT_CLIENT_ID: z.string().min(1).optional(),
+  REDDIT_CLIENT_SECRET: z.string().min(1).optional(),
+  REDDIT_REFRESH_TOKEN: z.string().min(1).optional(),
 });
 
 type RawEnv = z.infer<typeof schema>;
@@ -138,6 +158,15 @@ export const env = {
   TELEGRAM_API_HASH: raw.TELEGRAM_API_HASH,
   TELEGRAM_SESSION: raw.TELEGRAM_SESSION,
   SCRAPER_API_KEY: raw.SCRAPER_API_KEY,
+
+  // Autopilot (v2).
+  WEBHOOK_SECRET: raw.WEBHOOK_SECRET,
+  TELEGRAM_WORKER_URL: raw.TELEGRAM_WORKER_URL,
+  BLUESKY_IDENTIFIER: raw.BLUESKY_IDENTIFIER,
+  BLUESKY_APP_PASSWORD: raw.BLUESKY_APP_PASSWORD,
+  REDDIT_CLIENT_ID: raw.REDDIT_CLIENT_ID,
+  REDDIT_CLIENT_SECRET: raw.REDDIT_CLIENT_SECRET,
+  REDDIT_REFRESH_TOKEN: raw.REDDIT_REFRESH_TOKEN,
 } as const;
 
 export type Env = typeof env;

@@ -26,7 +26,7 @@ export function proxy(request: NextRequest): NextResponse {
 
   // Quien ya tiene sesión no necesita volver a /login.
   if (pathname === "/login" && hasSession) {
-    return NextResponse.redirect(new URL("/leads", request.url));
+    return NextResponse.redirect(new URL("/overview", request.url));
   }
 
   if (PUBLIC_PATHS.has(pathname)) {

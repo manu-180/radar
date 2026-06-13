@@ -12,7 +12,14 @@ import "server-only";
 import { getAdminClient } from "@/lib/supabase/admin";
 
 /** Tipo de job que origina la corrida; coincide con el `check` de `runs.kind`. */
-export type RunKind = "poll" | "process" | "notify" | "health";
+export type RunKind =
+  | "poll"
+  | "process"
+  | "notify"
+  | "health"
+  | "engage"
+  | "followup"
+  | "inbound";
 
 /** Estado final de una corrida ya terminada. */
 export type RunFinalStatus = "ok" | "error";

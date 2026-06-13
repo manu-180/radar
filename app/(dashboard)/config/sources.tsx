@@ -34,15 +34,16 @@ export interface Source {
 }
 
 /** Clases compartidas de inputs y textareas. */
-const FIELD_CLASS = "rounded-md border border-zinc-300 px-2 py-1.5 text-sm";
+const FIELD_CLASS =
+  "rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)] focus-ring";
 /** Clases del editor de texto monoespaciado para JSON. */
 const CODE_CLASS = `${FIELD_CLASS} w-full font-mono text-xs leading-relaxed`;
 /** Clases del botón primario (guardar). */
 const PRIMARY_BTN =
-  "rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60";
+  "inline-flex items-center rounded-lg bg-[var(--accent)] px-3.5 py-2 text-sm font-medium text-[var(--accent-fg)] transition-colors hover:bg-[var(--accent-hover)] focus-ring disabled:opacity-50 disabled:pointer-events-none";
 /** Clases del botón secundario (toggle). */
 const SECONDARY_BTN =
-  "rounded-md border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-60";
+  "inline-flex items-center rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3.5 py-2 text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--surface-2)] focus-ring disabled:opacity-50 disabled:pointer-events-none";
 
 /** Serializa un valor JSON con sangría, listo para mostrar en un editor. */
 function pretty(value: unknown): string {
@@ -76,18 +77,18 @@ export function SourceRow({ source }: { source: Source }) {
   }
 
   return (
-    <li className="space-y-3 rounded-md border border-zinc-200 p-3">
+    <li className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="font-medium text-zinc-900">{source.name}</span>
-        <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs text-zinc-500">
+        <span className="font-medium text-[var(--foreground)]">{source.name}</span>
+        <code className="rounded bg-[var(--surface-2)] px-1.5 py-0.5 text-xs text-[var(--muted)]">
           {source.slug}
         </code>
 
         <span
           className={`rounded-full px-2 py-0.5 text-xs font-medium ${
             source.enabled
-              ? "bg-green-100 text-green-800"
-              : "bg-zinc-100 text-zinc-500"
+              ? "bg-[var(--ok-soft)] text-[var(--ok-soft-fg)]"
+              : "bg-[var(--neutral-soft)] text-[var(--neutral-soft-fg)]"
           }`}
         >
           {source.enabled ? "Activa" : "Inactiva"}
@@ -95,7 +96,7 @@ export function SourceRow({ source }: { source: Source }) {
 
         {!source.hasAdapter && (
           <span
-            className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800"
+            className="rounded-full bg-[var(--warn-soft)] px-2 py-0.5 text-xs font-medium text-[var(--warn-soft-fg)]"
             title="Sin adaptador registrado: el config no se valida contra un schema."
           >
             Sin adaptador
@@ -112,7 +113,7 @@ export function SourceRow({ source }: { source: Source }) {
         </button>
       </div>
 
-      <label className="flex flex-col gap-1 text-xs font-medium text-zinc-500">
+      <label className="flex flex-col gap-1 text-xs font-medium text-[var(--muted)]">
         Config (JSON)
         <textarea
           value={configText}
@@ -149,7 +150,7 @@ export function SourceRow({ source }: { source: Source }) {
       </div>
 
       {error && (
-        <p role="alert" className="whitespace-pre-wrap text-sm text-red-600">
+        <p role="alert" className="whitespace-pre-wrap text-sm text-[var(--danger-soft-fg)]">
           {error}
         </p>
       )}
@@ -183,7 +184,7 @@ export function NotifyRuleForm({ rule }: { rule: unknown }) {
 
   return (
     <div className="space-y-2">
-      <label className="flex flex-col gap-1 text-xs font-medium text-zinc-500">
+      <label className="flex flex-col gap-1 text-xs font-medium text-[var(--muted)]">
         Regla de notificación (JSON)
         <textarea
           value={text}
@@ -194,7 +195,7 @@ export function NotifyRuleForm({ rule }: { rule: unknown }) {
           className={CODE_CLASS}
         />
       </label>
-      <p className="text-xs text-zinc-400">
+      <p className="text-xs text-[var(--subtle)]">
         Categorías válidas: <code>hiring</code>, <code>maybe</code>,{" "}
         <code>noise</code>. <code>minScore</code> es un entero de 0 a 100.
       </p>
@@ -207,7 +208,7 @@ export function NotifyRuleForm({ rule }: { rule: unknown }) {
         Guardar regla
       </button>
       {error && (
-        <p role="alert" className="whitespace-pre-wrap text-sm text-red-600">
+        <p role="alert" className="whitespace-pre-wrap text-sm text-[var(--danger-soft-fg)]">
           {error}
         </p>
       )}
@@ -235,7 +236,7 @@ export function MaxNotificationsForm({ value }: { value: number }) {
 
   return (
     <div className="space-y-2">
-      <label className="flex flex-col gap-1 text-xs font-medium text-zinc-500">
+      <label className="flex flex-col gap-1 text-xs font-medium text-[var(--muted)]">
         Máximo de avisos por corrida
         <input
           type="number"
@@ -256,7 +257,7 @@ export function MaxNotificationsForm({ value }: { value: number }) {
         Guardar tope
       </button>
       {error && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-[var(--danger-soft-fg)]">
           {error}
         </p>
       )}
@@ -284,7 +285,7 @@ export function FreelancerProfileForm({ profile }: { profile: string }) {
 
   return (
     <div className="space-y-2">
-      <label className="flex flex-col gap-1 text-xs font-medium text-zinc-500">
+      <label className="flex flex-col gap-1 text-xs font-medium text-[var(--muted)]">
         Perfil del freelancer
         <textarea
           value={text}
@@ -304,7 +305,7 @@ export function FreelancerProfileForm({ profile }: { profile: string }) {
         Guardar perfil
       </button>
       {error && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-[var(--danger-soft-fg)]">
           {error}
         </p>
       )}

@@ -57,7 +57,10 @@ begin
     'lead-detector-poll',
     'lead-detector-process',
     'lead-detector-notify',
-    'lead-detector-health'
+    'lead-detector-health',
+    'lead-detector-engage',
+    'lead-detector-followup',
+    'lead-detector-inbound'
   );
 
   -- 2) Polling — minutos :00, :20, :40. Dispara el dispatcher, que abre una
@@ -93,5 +96,37 @@ begin
     'lead-detector-health',
     '30 * * * *',
     format(cmd_template, app_url || '/api/health/check')
+  );
+
+  -- ── Autopilot (v2) ──────────────────────────────────────────────────────
+
+  -- 6) Engage — minutos :08, :28, :48 (justo después de notify). Toma los
+  --    leads ya clasificados que califican y tienen canal de contacto, les
+  --    manda el primer mensaje y crea la conversación. Corre después de notify
+  --    para que los leads del ciclo anterior ya estén procesados.
+  perform cron.schedule(
+    'lead-detector-engage',
+    '8-59/20 * * * *',
+    format(cmd_template, app_url || '/api/engage')
+  );
+
+  -- 7) Follow-up — minuto :15 de cada hora. Reengancha las conversaciones que
+  --    llevan más de N horas sin respuesta del lead (según `followup_policy`).
+  --    Frecuencia horaria porque los tiempos de reenganche son de 24-72 h; no
+  --    tiene sentido correrlo más seguido.
+  perform cron.schedule(
+    'lead-detector-followup',
+    '15 * * * *',
+    format(cmd_template, app_url || '/api/followup')
+  );
+
+  -- 8) Inbound poll — cada 5 minutos. Bluesky y Reddit no tienen webhooks:
+  --    este job lista DMs y replies nuevos en esos canales y los procesa.
+  --    Frecuencia de 5 min: barata (no llama a Claude) y da latencia aceptable
+  --    para los canales por polling.
+  perform cron.schedule(
+    'lead-detector-inbound',
+    '*/5 * * * *',
+    format(cmd_template, app_url || '/api/inbound/poll')
   );
 end $$;

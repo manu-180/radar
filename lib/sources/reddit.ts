@@ -122,17 +122,27 @@ function hasHiringFlair(post: RedditPostData): boolean {
 
 /** Mapea los `data` de un post de Reddit a la forma neutral {@link RawItem}. */
 function toRawItem(post: RedditPostData): RawItem {
+  const author = post.author ?? null;
+
+  // Contacto (v2): se puede escribir al autor por DM salvo que la cuenta esté
+  // borrada/suspendida (`[deleted]`). La clave de ruteo es el username.
+  const contact: RawItem["contact"] =
+    author && author !== "[deleted]"
+      ? { channel: "reddit", key: author, ref: {}, handle: `u/${author}` }
+      : null;
+
   return {
     externalId: post.name,
     title: post.title ?? "",
     body: post.selftext ?? "",
     url: `https://www.reddit.com${post.permalink ?? ""}`,
-    author: post.author ?? null,
+    author,
     postedAt:
       typeof post.created_utc === "number"
         ? new Date(post.created_utc * 1000).toISOString()
         : null,
     raw: post,
+    contact,
   };
 }
 

@@ -46,7 +46,7 @@ export async function login(
       maxAge: Math.floor(SESSION_MAX_AGE_MS / 1000),
     });
     // `redirect` lanza una excepción de control: nada debajo se ejecuta.
-    redirect("/leads");
+    redirect("/overview");
   }
 
   await new Promise((resolve) => setTimeout(resolve, FAILED_ATTEMPT_DELAY_MS));

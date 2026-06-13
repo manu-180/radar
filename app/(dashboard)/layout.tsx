@@ -1,31 +1,27 @@
 import { logout } from "./actions";
-import { DashboardNav } from "./nav";
+import { DashboardSidebar, DashboardTopbar } from "./nav";
 
 /**
- * Layout del dashboard: barra superior con navegación y botón de logout. El
- * grupo `(dashboard)` no afecta la URL — las páginas resuelven a `/leads`,
- * `/config` y `/metrics`. El acceso lo protege `proxy.ts`.
+ * Shell del command-center.
+ *
+ * Sidebar fija a la izquierda en desktop; barra superior con menú desplegable en
+ * mobile. El contenido vive en un `main` con ancho máximo y padding generoso. El
+ * grupo `(dashboard)` no afecta la URL — las páginas resuelven a `/overview`,
+ * `/conversations`, `/leads`, `/metrics` y `/config`. El acceso lo protege
+ * `proxy.ts` (cookie `ld_session` firmada).
  */
 export default function DashboardLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="flex items-center justify-between gap-4 border-b border-zinc-200 px-6 py-3">
-        <div className="flex items-center gap-6">
-          <span className="text-sm font-semibold">Lead Detector</span>
-          <DashboardNav />
-        </div>
-        <form action={logout}>
-          <button
-            type="submit"
-            className="rounded-md px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-100"
-          >
-            Cerrar sesión
-          </button>
-        </form>
-      </header>
-      <main className="flex-1 p-6">{children}</main>
+    <div className="flex min-h-screen bg-[var(--background)] text-[var(--foreground)]">
+      <DashboardSidebar logout={logout} />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <DashboardTopbar logout={logout} />
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

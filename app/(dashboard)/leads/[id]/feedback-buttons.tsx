@@ -50,10 +50,10 @@ export function FeedbackButtons({
               disabled={pending}
               aria-pressed={active}
               onClick={() => handleClick(option.value)}
-              className={`rounded-md border px-3 py-1.5 text-sm font-medium disabled:opacity-60 ${
+              className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors focus-ring disabled:opacity-60 ${
                 active
-                  ? "border-zinc-900 bg-zinc-900 text-white"
-                  : "border-zinc-300 text-zinc-700 hover:bg-zinc-100"
+                  ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-fg)]"
+                  : "border-[var(--border-strong)] text-[var(--foreground)] hover:bg-[var(--surface-2)]"
               }`}
             >
               {option.label}
@@ -62,7 +62,7 @@ export function FeedbackButtons({
         })}
       </div>
       {error && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-[var(--danger-soft-fg)]">
           {error}
         </p>
       )}

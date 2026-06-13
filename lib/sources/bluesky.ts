@@ -67,6 +67,8 @@ type BlueskyConfig = z.infer<typeof configSchema>;
 
 /** Forma parcial del autor de un post, con los campos que usamos. */
 interface BlueskyAuthor {
+  /** DID del autor: clave de contacto estable para DMs (v2). */
+  did?: string | null;
   handle?: string | null;
 }
 
@@ -137,7 +139,19 @@ function toRawItem(post: BlueskyPost): RawItem {
   const text = (post.record?.text ?? "").trim();
   const firstLine = text.split("\n").find((line) => line.length > 0) ?? "";
   const handle = post.author?.handle ?? null;
+  const did = post.author?.did ?? null;
   const rkey = post.uri.split("/").pop() ?? "";
+
+  // Contacto (v2): el autor es alcanzable por DM si tenemos su DID. La clave de
+  // ruteo es el DID; el handle es sólo display.
+  const contact: RawItem["contact"] = did
+    ? {
+        channel: "bluesky",
+        key: did,
+        ref: { did },
+        handle: handle ? `@${handle}` : null,
+      }
+    : null;
 
   return {
     externalId: post.uri,
@@ -148,6 +162,7 @@ function toRawItem(post: BlueskyPost): RawItem {
     author: handle,
     postedAt: post.indexedAt ?? null,
     raw: post,
+    contact,
   };
 }
 

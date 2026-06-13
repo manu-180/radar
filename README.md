@@ -11,6 +11,35 @@ verificarlo y qué hacer cuando algo falla.
 
 ---
 
+## v2 — Autopilot (outreach + conversación automática)
+
+La v2 agrega una capa nueva **después** de la clasificación. El sistema ya no
+solo te avisa: detecta el lead, lo contacta solo por el canal correspondiente,
+mantiene toda la conversación con IA hasta que el cliente pide un boceto o
+propuesta, y recién ahí te hace el handoff.
+
+```
+poll → pre-filtro → clasifica (v1, intacto)
+                        │  lead califica + tiene canal
+                        ▼
+  ENGAGE  → primer contacto automático en el canal del lead
+  TURN    → el agente IA responde solo por cada mensaje entrante
+  FOLLOW  → si el lead no contesta, lo reenganca (con tope)
+  HANDOFF → cuando pide boceto/propuesta → te lo pasa a vos
+```
+
+**Canales vivos:** Telegram, Bluesky, WhatsApp (Evolution API). Reddit
+soportado pero con autopilot desactivado por defecto (riesgo de ban).
+
+**Arranca apagado.** El switch maestro `outreach_enabled` comienza en `false`
+(modo shadow): el sistema detecta y clasifica como siempre, pero no contacta a
+nadie. Cuando todo esté configurado, lo prendés desde `/config`.
+
+Para el diseño completo ver [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+Para activar en producción ver [`docs/DEPLOY.md`](docs/DEPLOY.md).
+
+---
+
 ## 1. Arquitectura
 
 El sistema es un **pipeline de tres etapas desacopladas** más una de monitoreo.

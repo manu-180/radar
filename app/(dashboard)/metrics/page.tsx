@@ -16,6 +16,8 @@ import type { Metadata } from "next";
 
 import { getAdminClient } from "@/lib/supabase/admin";
 
+import { PageHeader } from "../ui";
+
 export const metadata: Metadata = { title: "Métricas" };
 
 export const dynamic = "force-dynamic";
@@ -166,9 +168,9 @@ function pollFreshness(
 function Bar({ value, max }: { value: number; max: number }) {
   const pct = max > 0 ? Math.round((value / max) * 100) : 0;
   return (
-    <div className="h-2 w-full rounded-full bg-zinc-100">
+    <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--surface-2)]">
       <div
-        className="h-2 rounded-full bg-zinc-700"
+        className="h-2 rounded-full bg-[var(--accent)]"
         style={{ width: `${pct}%` }}
       />
     </div>
@@ -186,12 +188,16 @@ function StatCard({
   hint?: string;
 }) {
   return (
-    <div className="rounded-lg border border-zinc-200 p-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
+      <p className="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
         {label}
       </p>
-      <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
-      {hint ? <p className="mt-0.5 text-xs text-zinc-400">{hint}</p> : null}
+      <p className="mt-1 text-2xl font-semibold tabular-nums text-[var(--foreground)]">
+        {value}
+      </p>
+      {hint ? (
+        <p className="mt-0.5 text-xs text-[var(--subtle)]">{hint}</p>
+      ) : null}
     </div>
   );
 }
@@ -203,8 +209,8 @@ function StatCard({
 function FunnelView({ title, values }: { title: string; values: number[] }) {
   const detected = values[0] ?? 0;
   return (
-    <div className="rounded-lg border border-zinc-200 p-4">
-      <h3 className="text-sm font-semibold">{title}</h3>
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
+      <h3 className="text-sm font-semibold text-[var(--foreground)]">{title}</h3>
       <ul className="mt-3 space-y-3">
         {FUNNEL_STAGES.map((stage, i) => {
           const value = values[i] ?? 0;
@@ -212,10 +218,12 @@ function FunnelView({ title, values }: { title: string; values: number[] }) {
           return (
             <li key={stage.key} className="space-y-1">
               <div className="flex items-baseline justify-between text-sm">
-                <span className="text-zinc-700">{stage.label}</span>
-                <span className="tabular-nums text-zinc-500">
-                  <span className="font-medium text-zinc-900">{value}</span> ·{" "}
-                  {pct}%
+                <span className="text-[var(--muted)]">{stage.label}</span>
+                <span className="tabular-nums text-[var(--subtle)]">
+                  <span className="font-medium text-[var(--foreground)]">
+                    {value}
+                  </span>{" "}
+                  · {pct}%
                 </span>
               </div>
               <Bar value={value} max={detected} />
@@ -343,13 +351,18 @@ export default async function MetricsPage() {
 
   return (
     <section className="space-y-8">
-      <h1 className="text-lg font-semibold">Métricas</h1>
+      <PageHeader
+        title="Métricas"
+        subtitle="El embudo de los leads y el gasto de IA, a lo largo del tiempo."
+      />
 
       {/* ===== Embudo de leads ===== */}
       <div className="space-y-3">
         <div>
-          <h2 className="text-base font-semibold">Embudo de leads</h2>
-          <p className="text-sm text-zinc-500">
+          <h2 className="text-base font-semibold text-[var(--foreground)]">
+            Embudo de leads
+          </h2>
+          <p className="text-sm text-[var(--muted)]">
             Recorrido de los leads detectados en cada ventana, etapa por etapa.
             Una caída brusca marca dónde se pierde valor.
           </p>
@@ -363,8 +376,10 @@ export default async function MetricsPage() {
       {/* ===== Costo de IA ===== */}
       <div className="space-y-3">
         <div>
-          <h2 className="text-base font-semibold">Costo de IA</h2>
-          <p className="text-sm text-zinc-500">
+          <h2 className="text-base font-semibold text-[var(--foreground)]">
+            Costo de IA
+          </h2>
+          <p className="text-sm text-[var(--muted)]">
             Gasto de Claude calculado con los tokens guardados por cada lead
             clasificado.
           </p>
@@ -382,17 +397,21 @@ export default async function MetricsPage() {
 
       {/* ===== Calidad y volumen ===== */}
       <div className="space-y-3">
-        <h2 className="text-base font-semibold">Calidad y volumen</h2>
+        <h2 className="text-base font-semibold text-[var(--foreground)]">
+          Calidad y volumen
+        </h2>
         <div className="grid gap-4 lg:grid-cols-3">
           <StatCard
             label="Tasa de calificación"
             value={`${qualRate.toFixed(1)}%`}
             hint={`${hiringAll} hiring de ${classifiedAll} clasificados`}
           />
-          <div className="rounded-lg border border-zinc-200 p-4 lg:col-span-2">
-            <h3 className="text-sm font-semibold">Leads por fuente</h3>
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 lg:col-span-2">
+            <h3 className="text-sm font-semibold text-[var(--foreground)]">
+              Leads por fuente
+            </h3>
             {perSource.length === 0 ? (
-              <p className="mt-3 text-sm text-zinc-500">
+              <p className="mt-3 text-sm text-[var(--muted)]">
                 No hay fuentes configuradas.
               </p>
             ) : (
@@ -400,8 +419,8 @@ export default async function MetricsPage() {
                 {perSource.map((s) => (
                   <li key={s.slug} className="space-y-1">
                     <div className="flex items-baseline justify-between text-sm">
-                      <span className="text-zinc-700">{s.name}</span>
-                      <span className="tabular-nums font-medium text-zinc-900">
+                      <span className="text-[var(--muted)]">{s.name}</span>
+                      <span className="tabular-nums font-medium text-[var(--foreground)]">
                         {s.count}
                       </span>
                     </div>
@@ -416,39 +435,41 @@ export default async function MetricsPage() {
 
       {/* ===== Últimas corridas ===== */}
       <div className="space-y-3">
-        <h2 className="text-base font-semibold">Últimas corridas</h2>
+        <h2 className="text-base font-semibold text-[var(--foreground)]">
+          Últimas corridas
+        </h2>
         {runs.length === 0 ? (
-          <p className="rounded-md border border-zinc-200 p-6 text-center text-sm text-zinc-500">
+          <p className="rounded-xl border border-dashed border-[var(--border-strong)] p-6 text-center text-sm text-[var(--muted)]">
             Todavía no se registró ninguna corrida.
           </p>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-zinc-200">
+          <div className="overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] scroll-elegant">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-zinc-200 text-left text-xs uppercase tracking-wide text-zinc-500">
-                  <th className="px-3 py-2 font-medium">Tipo</th>
-                  <th className="px-3 py-2 font-medium">Fuente</th>
-                  <th className="px-3 py-2 font-medium">Estado</th>
-                  <th className="px-3 py-2 font-medium">Items</th>
-                  <th className="px-3 py-2 font-medium">Duración</th>
-                  <th className="px-3 py-2 font-medium">Inicio</th>
+                <tr className="border-b border-[var(--border)] text-left text-xs uppercase tracking-wide text-[var(--muted)]">
+                  <th className="px-4 py-3 font-medium">Tipo</th>
+                  <th className="px-4 py-3 font-medium">Fuente</th>
+                  <th className="px-4 py-3 font-medium">Estado</th>
+                  <th className="px-4 py-3 font-medium">Items</th>
+                  <th className="px-4 py-3 font-medium">Duración</th>
+                  <th className="px-4 py-3 font-medium">Inicio</th>
                 </tr>
               </thead>
               <tbody>
                 {runs.map((run) => (
                   <tr
                     key={run.id}
-                    className="border-b border-zinc-100 last:border-0 hover:bg-zinc-50"
+                    className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--surface-2)]"
                   >
-                    <td className="px-3 py-2 whitespace-nowrap text-zinc-700">
+                    <td className="px-4 py-3 whitespace-nowrap text-[var(--foreground)]">
                       {KIND_LABELS[run.kind] ?? run.kind}
                     </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-zinc-600">
+                    <td className="px-4 py-3 whitespace-nowrap text-[var(--muted)]">
                       {run.source
                         ? (sourceName.get(run.source) ?? run.source)
                         : "—"}
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="px-4 py-3">
                       <span
                         className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
                           STATUS_BADGE[run.status] ?? "bg-zinc-100 text-zinc-600"
@@ -458,16 +479,16 @@ export default async function MetricsPage() {
                       </span>
                     </td>
                     <td
-                      className="px-3 py-2 whitespace-nowrap tabular-nums text-zinc-600"
+                      className="px-4 py-3 whitespace-nowrap tabular-nums text-[var(--muted)]"
                       title="encontrados / nuevos / procesados"
                     >
                       {run.items_found} / {run.items_new} /{" "}
                       {run.items_processed}
                     </td>
-                    <td className="px-3 py-2 whitespace-nowrap tabular-nums text-zinc-600">
+                    <td className="px-4 py-3 whitespace-nowrap tabular-nums text-[var(--muted)]">
                       {formatDuration(run.started_at, run.finished_at)}
                     </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-zinc-600">
+                    <td className="px-4 py-3 whitespace-nowrap text-[var(--muted)]">
                       {formatDateTime(run.started_at)}
                     </td>
                   </tr>
@@ -480,22 +501,24 @@ export default async function MetricsPage() {
 
       {/* ===== Último poll exitoso por fuente ===== */}
       <div className="space-y-3">
-        <h2 className="text-base font-semibold">Último poll exitoso</h2>
+        <h2 className="text-base font-semibold text-[var(--foreground)]">
+          Último poll exitoso
+        </h2>
         {sources.length === 0 ? (
-          <p className="rounded-md border border-zinc-200 p-6 text-center text-sm text-zinc-500">
+          <p className="rounded-xl border border-dashed border-[var(--border-strong)] p-6 text-center text-sm text-[var(--muted)]">
             No hay fuentes configuradas.
           </p>
         ) : (
-          <ul className="grid gap-2 rounded-lg border border-zinc-200 p-4 sm:grid-cols-2">
+          <ul className="grid gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:grid-cols-2">
             {sources.map((s) => {
               const ts = lastPoll.get(s.slug) ?? null;
               const freshness = pollFreshness(ts, s.poll_interval_minutes);
               const dotColor =
                 freshness === "ok"
-                  ? "bg-green-500"
+                  ? "bg-[var(--ok-solid)]"
                   : freshness === "warn"
-                    ? "bg-amber-500"
-                    : "bg-red-500";
+                    ? "bg-[var(--warn-solid)]"
+                    : "bg-[var(--danger-solid)]";
               return (
                 <li
                   key={s.slug}
@@ -506,12 +529,12 @@ export default async function MetricsPage() {
                       className={`inline-block h-2.5 w-2.5 rounded-full ${dotColor}`}
                       aria-hidden
                     />
-                    <span className="text-zinc-700">{s.name}</span>
+                    <span className="text-[var(--foreground)]">{s.name}</span>
                   </span>
-                  <span className="text-right text-zinc-500">
+                  <span className="text-right text-[var(--muted)]">
                     {relativeTime(ts)}
                     {ts ? (
-                      <span className="ml-2 text-xs text-zinc-400">
+                      <span className="ml-2 text-xs text-[var(--subtle)]">
                         {formatDateTime(ts)}
                       </span>
                     ) : null}
