@@ -3,7 +3,7 @@
 > Estado vivo del trabajo. La arquitectura está en [`ARCHITECTURE.md`](./ARCHITECTURE.md).
 > Una sesión nueva debe poder reconstruir TODO desde acá + el repo, sin el chat.
 
-**Última actualización:** 2026-06-13 (sesión 2: hardening + verificación del worker)
+**Última actualización:** 2026-06-13 (sesión 3: re-verificación + targeting "página web" + diagnóstico de deploy)
 
 ## ✅ ESTADO: construido y verificado (falta activar con credenciales)
 Todo el código de v2 está escrito e integrado. Verificación local en verde:
@@ -12,6 +12,29 @@ Todo el código de v2 está escrito e integrado. Verificación local en verde:
 Lo único pendiente es **activación** (credenciales + aplicar migración + prender el
 switch), documentado en [`DEPLOY.md`](./DEPLOY.md). El sistema arranca en modo
 **shadow** (`outreach_enabled=false`): detecta y prepara, no contacta a nadie.
+
+### Sesión 3 — verificación + targeting + diagnóstico de infraestructura
+- **Re-verificado en verde** desde cero: `lint` ✓ · `typecheck` ✓ · `vitest` 111 ✓.
+- **Diagnóstico de deploy (importante para activar):** NO existe todavía un proyecto
+  del radar ni en **Supabase** (el único alcanzable por MCP es "Videos") ni en
+  **Vercel** (50 proyectos en el team "Manuel's projects", ninguno es el radar).
+  Tampoco hay `.env.local`. ⇒ La activación es **desde cero**: provisionar DB +
+  primer deploy + cargar credenciales. No es un bug; es infra que sólo Manuel puede
+  crear con su cuenta.
+- **No hay gap de código.** Auditoría end-to-end confirmó que el loop automático
+  está completo y cableado (detectar → clasificar → DM en frío → entrante → responder
+  con IA → followup → handoff). Las **fuentes ya vienen sembradas** en `0001`
+  (Bluesky habilitado con queries es/en; keywords de "necesito una pagina", etc.).
+- **Mejora de targeting → migración `0010_web_targeting.sql`** (aditiva, idempotente,
+  forward-only): suma a la fuente Bluesky queries de intención "página web"
+  ("necesito una página web", "need a website", "necesito una landing", …). Las
+  queries originales sólo decían "hire a developer"; ahora también pesca a quien
+  busca puntualmente una web. **Aplicarla junto con el resto de migraciones.**
+- **Camino mínimo recomendado para arrancar (el más barato y 100% automático):
+  sólo Bluesky.** No necesita worker de Railway, ni Evolution/WhatsApp, ni teléfonos
+  — sólo un app password de Bluesky. Telegram y WhatsApp se suman después.
+- **Secretos generados** (CRON_SECRET, AUTH_SECRET, WEBHOOK_SECRET): se entregaron a
+  Manuel por chat (no se commitean). Pegar en las env vars de Vercel al deployar.
 
 ### Sesión 2 — hardening (sin pasos manuales pendientes en el código)
 - **Webhook secret con fallback por query param** (`verifyWebhookSecret`): además
