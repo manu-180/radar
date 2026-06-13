@@ -43,17 +43,36 @@ export function verifyCronSecret(request: Request): boolean {
 }
 
 /**
- * Verifica que un request traiga el header `x-webhook-secret` correcto.
+ * Verifica que un request traiga el secreto de webhook correcto.
  *
- * Protege los webhooks entrantes de los canales (`/api/inbound/*`). Si
- * `WEBHOOK_SECRET` no está configurado, devuelve `false` siempre: sin secreto,
+ * Protege los webhooks entrantes de los canales (`/api/inbound/*`). Acepta el
+ * secreto por dos vías, en orden de preferencia:
+ *  1. Header `x-webhook-secret` (lo usa el worker de Telegram, que controlamos).
+ *  2. Query param `?s=` o `?secret=` (fallback): algunos proveedores de webhook
+ *     —Evolution API entre ellos— no permiten mandar headers custom, así que el
+ *     secreto va en la URL del webhook. Viaja sobre HTTPS.
+ *
+ * Si `WEBHOOK_SECRET` no está configurado, devuelve `false` siempre: sin secreto,
  * los webhooks quedan cerrados y el outreach automático no recibe nada (modo
- * seguro por defecto).
+ * seguro por defecto). La comparación es timing-safe en ambas vías.
  */
 export function verifyWebhookSecret(request: Request): boolean {
   const secret = env.WEBHOOK_SECRET;
   if (!secret) return false;
-  const provided = request.headers.get("x-webhook-secret");
-  if (!provided) return false;
-  return timingSafeEqualStr(provided, secret);
+
+  // 1) Header preferido.
+  const header = request.headers.get("x-webhook-secret");
+  if (header) return timingSafeEqualStr(header, secret);
+
+  // 2) Fallback por query param (proveedores sin headers custom).
+  try {
+    const fromQuery =
+      new URL(request.url).searchParams.get("s") ??
+      new URL(request.url).searchParams.get("secret");
+    if (fromQuery) return timingSafeEqualStr(fromQuery, secret);
+  } catch {
+    // request.url malformado: cae al `false` de abajo.
+  }
+
+  return false;
 }

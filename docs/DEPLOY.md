@@ -50,18 +50,20 @@ Cargá el valor resultante como variable de entorno en Vercel (Production):
 
 Evolution API necesita saber adónde mandar los mensajes entrantes.
 
-En el panel de Evolution API, configurá el webhook de tu instancia apuntando a:
-```
-${APP_URL}/api/inbound/whatsapp
-```
+En el panel de Evolution API, configurá el webhook de tu instancia. El endpoint
+acepta el secreto por **header** o por **query param** — usá el que tu versión de
+Evolution soporte:
 
-El webhook debe enviar el header `x-webhook-secret: <WEBHOOK_SECRET>`.
+- **Con header** (preferido): URL `${APP_URL}/api/inbound/whatsapp` + header
+  `x-webhook-secret: <WEBHOOK_SECRET>`.
+- **Sin headers custom** (fallback): poné el secreto en la URL del webhook:
+  ```
+  ${APP_URL}/api/inbound/whatsapp?s=<WEBHOOK_SECRET>
+  ```
+  Viaja sobre HTTPS y se compara timing-safe igual que el header.
 
-> **Limitación conocida:** si tu versión de Evolution API no soporta headers
-> personalizados en el webhook, dejá anotado como pendiente y habilitá el canal
-> de todos modos — el endpoint devolverá 401 en los entrantes, pero el canal
-> seguirá funcionando para salientes (engage/follow-up). Resolver en una
-> próxima sesión.
+Activá en Evolution el evento `messages.upsert` (mensajes nuevos). El endpoint
+ignora los envíos propios (`fromMe`) y los eventos que no son texto.
 
 ---
 

@@ -3,14 +3,31 @@
 > Estado vivo del trabajo. La arquitectura está en [`ARCHITECTURE.md`](./ARCHITECTURE.md).
 > Una sesión nueva debe poder reconstruir TODO desde acá + el repo, sin el chat.
 
-**Última actualización:** 2026-06-13 (v2 Autopilot construido y verificado en verde)
+**Última actualización:** 2026-06-13 (sesión 2: hardening + verificación del worker)
 
 ## ✅ ESTADO: construido y verificado (falta activar con credenciales)
 Todo el código de v2 está escrito e integrado. Verificación local en verde:
 `tsc --noEmit` ✓ · `eslint` ✓ · `vitest` 111 tests ✓ · `next build` ✓.
+**Worker** (Telegram, Railway): `npm install` ✓ · `tsc` ✓ · código revisado ✓.
 Lo único pendiente es **activación** (credenciales + aplicar migración + prender el
 switch), documentado en [`DEPLOY.md`](./DEPLOY.md). El sistema arranca en modo
 **shadow** (`outreach_enabled=false`): detecta y prepara, no contacta a nadie.
+
+### Sesión 2 — hardening (sin pasos manuales pendientes en el código)
+- **Webhook secret con fallback por query param** (`verifyWebhookSecret`): además
+  del header `x-webhook-secret`, acepta `?s=<secret>` en la URL. Resuelve el caso
+  de Evolution API cuando no permite headers custom → WhatsApp inbound anda de una.
+- **Worker verificado**: instala y typechequea limpio; relay inbound + `/send`
+  revisados (shape del payload matchea el adapter de Telegram).
+- **DEPLOY.md** actualizado (webhook por header o query param).
+
+### ⚠️ Sobre aplicar la migración 0009 (lo único que NO pude hacer yo)
+La base de datos del radar **no es alcanzable desde esta sesión**: revisé todos los
+proyectos Supabase conectados por MCP (videos, virus, poncho, oficiosapp,
+libre-albedrio; botlode/conductor caídos; assistify sin auth) y **ninguno es el del
+radar**. No voy a aplicar una migración a la DB equivocada. **Manuel: aplicá
+`supabase/migrations/0009_conversations.sql`** desde el SQL Editor de tu proyecto
+Supabase del radar (o decime cuál es y la aplico). Es idempotente y aditiva.
 
 ---
 
