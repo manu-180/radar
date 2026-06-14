@@ -3,15 +3,25 @@
 > Estado vivo del trabajo. La arquitectura está en [`ARCHITECTURE.md`](./ARCHITECTURE.md).
 > Una sesión nueva debe poder reconstruir TODO desde acá + el repo, sin el chat.
 
-**Última actualización:** 2026-06-13 (sesión 3: re-verificación + targeting "página web" + diagnóstico de deploy)
+**Última actualización:** 2026-06-14 (sesión 5: LIVE en producción + fix del bug de DMs de Bluesky)
 
-## ✅ ESTADO: construido y verificado (falta activar con credenciales)
-Todo el código de v2 está escrito e integrado. Verificación local en verde:
-`tsc --noEmit` ✓ · `eslint` ✓ · `vitest` 111 tests ✓ · `next build` ✓.
-**Worker** (Telegram, Railway): `npm install` ✓ · `tsc` ✓ · código revisado ✓.
-Lo único pendiente es **activación** (credenciales + aplicar migración + prender el
-switch), documentado en [`DEPLOY.md`](./DEPLOY.md). El sistema arranca en modo
-**shadow** (`outreach_enabled=false`): detecta y prepara, no contacta a nadie.
+## 🟢 ESTADO: EN VIVO EN PRODUCCIÓN (autopilot ON, cap 5/día)
+Desplegado en **https://radar-five-indol.vercel.app** (Vercel, auto-deploy desde
+`main`; Supabase `eurhkkwhsolvixvwlgto`; cron pg_cron con 7 jobs). `outreach_enabled=true`,
+`outreach_daily_cap=5`. Playbook con la oferta real de APEX. Detecta, clasifica,
+contacta por Bluesky, conversa y hace handoff por WhatsApp — todo solo.
+
+### Sesión 5 — LIVE + fix del canal Bluesky
+- **Bug real arreglado:** `lib/channels/bluesky.ts` proxeaba el chat por `bsky.social`
+  (el *entryway*), pero las cuentas viven en `*.host.bsky.network` → los DMs daban
+  **501 MethodNotImplemented** (ningún mensaje salía). Ahora resuelve el PDS real del
+  `didDoc` de `createSession` y proxea el chat por ahí. Verificado en prod (resuelve
+  `stropharia.us-west.host.bsky.network`, inbound poll 200, sin 501). NO requiere
+  cambiar credenciales en Vercel (el app password viejo sirve).
+- **Diagnóstico descartado:** no era el scope del app password (ambos tienen DM
+  access) ni un setting de la cuenta — era el host hardcodeado en el código.
+
+> Histórico de sesiones 1-4 más abajo (build, deploy desde cero, activación).
 
 ### Sesión 3 — verificación + targeting + diagnóstico de infraestructura
 - **Re-verificado en verde** desde cero: `lint` ✓ · `typecheck` ✓ · `vitest` 111 ✓.
