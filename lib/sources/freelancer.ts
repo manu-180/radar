@@ -157,6 +157,9 @@ function toRawItem(project: FreelancerProject): RawItem {
 export const freelancerAdapter: SourceAdapter = {
   slug: "freelancer",
   displayName: "Freelancer.com",
+  // Cada proyecto activo es, por definición, alguien que quiere contratar: no
+  // pasa por el filtro de keywords (lo juzga el clasificador). Ver types.ts.
+  skipPrefilter: true,
   configSchema,
 
   async fetchItems(rawConfig: unknown, cursor: SourceCursor): Promise<FetchResult> {
