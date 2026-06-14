@@ -14,8 +14,8 @@ contacta por Bluesky, conversa y hace handoff por WhatsApp — todo solo.
 ### Sesión 7 — Detección por FIREHOSE de Bluesky + filtro en capas (en curso)
 > Migrar la detección de Bluesky de **search-poll** a **firehose** (consumir todo
 > el stream de la red). Fuente de verdad completa: [`docs/FIREHOSE.md`](./FIREHOSE.md).
-> Commiteado en la rama `feat/high-intent-sources` (SIN mergear a `main`: el merge
-> es coordinado con la otra sesión — ver "Pendiente").
+> Commiteado y pusheado a `origin/feat/high-intent-sources` — **CI verde** (jobs
+> `verify` + `worker`). SIN mergear a `main`: el merge es coordinado (ver "Pendiente").
 
 - **App-side HECHO y verde** (lint/typecheck/test/build):
   - `lib/filter/match.ts` (NEW): lógica pura del pre-filtro (sin `server-only`/DB),
