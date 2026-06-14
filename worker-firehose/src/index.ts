@@ -26,7 +26,7 @@ import http from "node:http";
 
 import { WebSocket } from "ws";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Keyword } from "@/lib/filter/match";
+import type { Keyword } from "./filter/match";
 
 import { loadEnv, WANTED_COLLECTION } from "./env";
 import { log } from "./log";

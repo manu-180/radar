@@ -14,7 +14,7 @@
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-import type { Keyword } from "@/lib/filter/match";
+import type { Keyword } from "./filter/match";
 
 import type { LeadRow } from "./types";
 

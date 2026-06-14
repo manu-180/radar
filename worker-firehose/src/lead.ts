@@ -15,9 +15,8 @@
  * firehose tenga otra forma que el del search-poll.
  */
 
-import { contentHash, detectLang } from "@/lib/filter/normalize";
-import { prefilter, type Keyword } from "@/lib/filter/match";
-import type { RawItem } from "@/lib/sources/types";
+import { contentHash, detectLang } from "./filter/normalize";
+import { prefilter, type Keyword } from "./filter/match";
 
 import type { LeadRow } from "./types";
 import type { PostCreate } from "./jetstream";
@@ -27,6 +26,27 @@ const SOURCE = "bluesky" as const;
 
 /** Largo máximo del título derivado de la primera línea (igual que el adaptador). */
 const TITLE_MAX_LENGTH = 120;
+
+/**
+ * Item reconstruido como lo arma `toRawItem` del search-poll: lo justo para
+ * calcular el `content_hash` (title/body/url) y armar la fila. Espejo local del
+ * `RawItem` del app (no se importa para mantener el worker autocontenido).
+ */
+interface PollItem {
+  externalId: string;
+  title: string;
+  body: string;
+  url: string;
+  author: string;
+  postedAt: string | null;
+  raw: unknown;
+  contact: {
+    channel: "bluesky";
+    key: string;
+    ref: { did: string };
+    handle: string;
+  };
+}
 
 /**
  * Recorta `text` a `max` caracteres agregando una elipsis si lo excede.
@@ -65,7 +85,7 @@ export function buildRawItem(
   handle: string,
   rkey: string,
   post: PostCreate,
-): RawItem {
+): PollItem {
   const trimmed = text.trim();
   const firstLine = trimmed.split("\n").find((line) => line.length > 0) ?? "";
   const did = post.did;

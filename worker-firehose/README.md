@@ -18,10 +18,12 @@ Jetstream (wss, all posts) ──► worker-firehose (Railway, persistent)
                     Supabase `leads`  ──►  /api/process (Vercel, PAID, budgeted)
 ```
 
-It shares the **pure** filter modules with the app (`lib/filter/normalize.ts`
-and `lib/filter/match.ts`) so there is zero divergence between what the worker
-filters and what the rest of the system considers a "lead". It does **not** send
-WhatsApp — the budget-cap notice is sent by `/api/process`.
+It **vendors** copies of the app's pure filter logic under `src/filter/`
+(`normalize.ts` + `match.ts`, mirrors of `lib/filter/*`) so it is fully
+self-contained: Railway's "Root Directory = worker-firehose" only uploads this
+folder, so the runtime can't reach `../lib/*`. A CI test cross-checks the vendored
+`contentHash` against the app's so the copies can't silently drift. It does
+**not** send WhatsApp — the budget-cap notice is sent by `/api/process`.
 
 ---
 
@@ -111,16 +113,15 @@ lexicons (training data was treated as stale per `AGENTS.md`):
 
 ## Build & run
 
-This worker is a **separate package** with its own `node_modules`. It imports the
-app's pure filter modules by relative path (`@/lib/filter/*` → `../lib/filter/*`
-via the `paths` mapping in `tsconfig.json`). Those modules use only `import type`
-aliases that esbuild erases.
+This worker is a **separate, self-contained package** with its own `node_modules`.
+The runtime imports nothing from outside `worker-firehose/` — the shared filter
+logic is **vendored** under `src/filter/`. Only `src/lead.test.ts` reaches into the
+app's `contentHash` (via the `@/* → ../*` `paths` mapping in `tsconfig.json`) to
+assert the vendored copy hashes identically; tests run in CI only, never on Railway.
 
-Because the shared app modules live under the repo root (which is **not**
-`"type":"module"`), running them directly through `tsx` hits Node's CJS
-extensionless-import resolution and fails. The worker therefore **bundles with
-esbuild** for both production and tests (esbuild inlines and resolves the shared
-modules correctly). This is the standard Railway "build then run dist" pattern.
+The worker **bundles with esbuild** for both production and tests. This keeps the
+production bundle free of any parent-folder dependency, so Railway's
+`Root Directory = worker-firehose` works — the standard "build then run dist" pattern.
 
 ```bash
 cd worker-firehose

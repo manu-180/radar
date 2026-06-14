@@ -74,9 +74,14 @@ la IA (Capa 4). Editables desde la tabla `keywords` / dashboard.
 - `lib/filter/prefilter.ts` — `server-only`: `loadKeywords()` (lee la DB) +
   re-exporta lo de `match.ts` para no tocar call-sites.
 
-El worker importa `normalize.ts` + `match.ts` (puros) y carga las keywords con su
-propio cliente de Supabase. Sólo tienen imports `import type` con alias `@/` (los
-borra esbuild); para `tsc`, el worker mapea `@/* → ../*` en su tsconfig.
+El worker **NO** importa estos módulos en runtime: Railway con "Root Directory =
+`worker-firehose`" sólo sube esa carpeta (no `../lib/*`), así que el worker
+**vendorea** copias en `worker-firehose/src/filter/{normalize,match}.ts` y carga
+las keywords con su propio cliente de Supabase. Para que las copias no se
+desincronicen, el test `worker-firehose/src/lead.test.ts` importa el `contentHash`
+del app (por `@/…`, **sólo en CI** — Railway nunca buildea los tests) y verifica
+que produce el MISMO hash que la copia vendoreada. Si algún día cambia
+`lib/filter/*`, hay que reflejarlo en las copias y el test de CI lo exige.
 
 ## Kill-switch de presupuesto (US$5)
 
