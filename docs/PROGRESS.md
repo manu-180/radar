@@ -31,7 +31,8 @@ origin → **preview en Vercel**. Único archivo compartido tocado: `app/api/pol
   tiene mensajería usable dentro de ToS → `contact_channel=null` → el lead **avisa a Manuel
   por WhatsApp** con título + URL + `suggested_reply` (borrador de propuesta); Manuel licita a
   mano. Auto-bid viola ToS (no se hace).
-- **Migración `0011_freelancer_es.sql`** (idempotente, forward-only): reorienta las queries de
+- **Migración `0012_freelancer_es.sql`** (idempotente, forward-only; numerada 0012 para no
+  colisionar con `0011_firehose_detection` de la sesión de Bluesky): reorienta las queries de
   Freelancer al español (`página web`, `tienda online`, `landing page`, `desarrollo web`, …).
   **Ya aplicada a la DB** (Freelancer queda con queries ES; sigue inerte hasta el token).
 - **Tests nuevos:** `test/freelancer.test.ts` (skipPrefilter, inerte sin token, modelo notify)
@@ -50,7 +51,7 @@ origin → **preview en Vercel**. Único archivo compartido tocado: `app/api/pol
 - **Inputs pendientes de Manuel para activar Freelancer:**
   1. Generar `FREELANCER_OAUTH_TOKEN` en developers.freelancer.com (puede requerir aprobación
      de API de su lado — se sabrá al intentarlo) y cargarlo en Vercel (Preview + Production).
-  2. ✅ Migración `0011` ya aplicada a la DB (queries ES; Freelancer inerte hasta el token).
+  2. ✅ Migración `0012` ya aplicada a la DB (queries ES; Freelancer inerte hasta el token).
   3. (Claude, cuando esté el token) disparar poll → verificar que los leads de Freelancer pasan
      a `pending` (no `skipped`), se clasifican `hiring`, y llega el aviso por WhatsApp.
 

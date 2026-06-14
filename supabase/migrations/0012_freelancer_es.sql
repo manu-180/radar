@@ -1,4 +1,5 @@
--- 0011_freelancer_es.sql
+-- 0012_freelancer_es.sql (numerado 0012 para no colisionar con 0011_firehose_detection
+-- de la sesión de Bluesky; ambas migraciones son independientes)
 -- Decisión: español-only (Manuel no opera en inglés todavía). Reorienta la fuente
 -- Freelancer.com del set genérico en inglés a términos de intención "web" en
 -- español, para pescar proyectos del mercado AR/LatAm/España.
