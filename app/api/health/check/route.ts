@@ -101,6 +101,19 @@ async function checkPolling(db: Db, now: number): Promise<Problem[]> {
 
 /** ¿Alguna fuente acumula 3+ polls fallidos consecutivos? */
 async function checkSources(db: Db): Promise<Problem[]> {
+  // Sólo una fuente *habilitada* puede estar "caída": una deshabilitada está
+  // apagada a propósito (ej. sin credenciales), no rota. Sin este filtro, una
+  // fuente apagada que venía fallando quedaría marcada para siempre —nunca
+  // vuelve a tener un `ok` que corte la racha— y dispararía recordatorios.
+  const { data: enabledRows, error: enabledErr } = await db
+    .from("sources")
+    .select("slug")
+    .eq("enabled", true);
+  if (enabledErr) {
+    throw new Error(`No se pudieron leer las fuentes habilitadas: ${enabledErr.message}`);
+  }
+  const enabled = new Set((enabledRows ?? []).map((r) => r.slug as string));
+
   // Las corridas terminadas (ok/error) de poll, de la más nueva a la más vieja.
   // Una corrida `running` aún no tiene veredicto: se excluye.
   const { data, error } = await db
@@ -131,7 +144,7 @@ async function checkSources(db: Db): Promise<Problem[]> {
 
   const problems: Problem[] = [];
   for (const [source, count] of streak) {
-    if (count >= SOURCE_DOWN_STREAK) {
+    if (count >= SOURCE_DOWN_STREAK && enabled.has(source)) {
       problems.push({
         key: `source-down:${source}`,
         summary: `Fuente "${source}": ${count} polls fallidos seguidos.`,
