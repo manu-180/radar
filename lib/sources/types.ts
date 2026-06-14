@@ -71,6 +71,15 @@ export interface SourceAdapter {
   slug: string;
   /** Nombre legible para humanos (UI, logs). */
   displayName: string;
+  /**
+   * Si la fuente saltea el pre-filtro de keywords. `true` para fuentes de alta
+   * intención (job-boards: Freelancer, Workana, …) donde cada item es, por
+   * definición, alguien que quiere contratar: el filtro de keywords —pensado
+   * para cortar el ruido de fuentes sociales— sólo tiraría leads reales cuyo
+   * wording no matchea las frases exactas. Esos items pasan siempre y el
+   * clasificador (barato) juzga el fit. Default (ausente) = aplica el filtro.
+   */
+  skipPrefilter?: boolean;
   /** Schema de Zod que valida el `config` propio de esta fuente. */
   configSchema: ZodType;
   /**

@@ -108,3 +108,31 @@ export function prefilter(
     reason: "No coincidió con ninguna keyword de inclusión",
   };
 }
+
+/**
+ * Decide si un item avanza a la clasificación, contemplando el bypass por fuente.
+ *
+ * Envuelve a {@link prefilter}: si la fuente declara `skipPrefilter`, el item
+ * pasa siempre (sin mirar keywords) porque ya es un pedido de contratación
+ * explícito; si no, delega en el pre-filtro de keywords normal.
+ *
+ * @param item           Item crudo de la fuente.
+ * @param lang           Idioma detectado del item.
+ * @param keywords       Keywords habilitadas (ver {@link loadKeywords}).
+ * @param skipPrefilter  `true` si la fuente saltea el filtro de keywords.
+ */
+export function decidePrefilter(
+  item: RawItem,
+  lang: string,
+  keywords: Keyword[],
+  skipPrefilter: boolean,
+): PrefilterResult {
+  if (skipPrefilter) {
+    return {
+      passed: true,
+      matched: [],
+      reason: "Fuente de alta intención: se saltea el pre-filtro de keywords",
+    };
+  }
+  return prefilter(item, lang, keywords);
+}

@@ -172,3 +172,45 @@ describe("prefilter", () => {
     expect(result.reason).toMatch(/ninguna keyword de inclusi/i);
   });
 });
+
+describe("decidePrefilter", () => {
+  it("con skipPrefilter=true, un item de job-board pasa aunque no matchee ninguna keyword", async () => {
+    const { decidePrefilter } = await importPrefilter();
+    const result = decidePrefilter(
+      makeItem({
+        title: "Desarrollo de tienda online en Shopify",
+        body: "Presupuesto a convenir, urgente",
+      }),
+      "es",
+      KEYWORDS,
+      true,
+    );
+    expect(result.passed).toBe(true);
+    expect(result.matched).toEqual([]);
+    expect(result.reason).toMatch(/alta intenci/i);
+  });
+
+  it("con skipPrefilter=false, delega en el pre-filtro normal y descarta lo que no matchea", async () => {
+    const { decidePrefilter } = await importPrefilter();
+    const result = decidePrefilter(
+      makeItem({ title: "Vendo bicicleta usada en buen estado" }),
+      "es",
+      KEYWORDS,
+      false,
+    );
+    expect(result.passed).toBe(false);
+    expect(result.matched).toEqual([]);
+  });
+
+  it("con skipPrefilter=false, deja pasar un pedido real igual que prefilter", async () => {
+    const { decidePrefilter } = await importPrefilter();
+    const result = decidePrefilter(
+      makeItem({ title: "Necesito un desarrollador para mi web" }),
+      "es",
+      KEYWORDS,
+      false,
+    );
+    expect(result.passed).toBe(true);
+    expect(result.matched).toContain("necesito un desarrollador");
+  });
+});
