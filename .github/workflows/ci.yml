@@ -35,6 +35,23 @@ jobs:
 
       - name: Build
         run: npm run build
+        # next build evalúa lib/env al recolectar páginas; en CI no hay secretos
+        # reales, así que se pasan placeholders de formato válido (Vercel inyecta
+        # los reales en prod). Sin esto, env.ts lanza y el build falla.
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: anon-key
+          SUPABASE_SERVICE_ROLE_KEY: service-role-key
+          ANTHROPIC_API_KEY: sk-ant-test
+          EVOLUTION_API_URL: https://evolution.example.com
+          EVOLUTION_API_KEY: evolution-key
+          EVOLUTION_INSTANCE: wa-test
+          OWNER_WHATSAPP: "+5491112345678"
+          CRON_SECRET: cron-secret-aleatorio-largo-1234
+          AUTH_SECRET: auth-secret-aleatorio-largo-1234
+          REDDIT_USER_AGENT: lead-detector/1.0
+          DASHBOARD_PASSWORD: dashboard-password
+          APP_URL: http://localhost:3000
 
   # El worker del firehose es un paquete aparte (Railway), fuera del build de la
   # app. Importa lib/filter/* del repo, así que un cambio en esos módulos podría
