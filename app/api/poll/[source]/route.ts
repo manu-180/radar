@@ -14,7 +14,7 @@
  */
 
 import { contentHash, detectLang } from "@/lib/filter/normalize";
-import { loadKeywords, prefilter } from "@/lib/filter/prefilter";
+import { loadKeywords, decidePrefilter } from "@/lib/filter/prefilter";
 import { finishRun, startRun } from "@/lib/db/runs";
 import { persistLeads, type LeadRow } from "@/lib/db/leads";
 import { createLogger } from "@/lib/logger";
@@ -100,7 +100,7 @@ export async function POST(
     const keywords = await loadKeywords();
     const rows: LeadRow[] = items.map((item) => {
       const lang = detectLang(`${item.title} ${item.body}`);
-      const result = prefilter(item, lang, keywords);
+      const result = decidePrefilter(item, lang, keywords, adapter.skipPrefilter ?? false);
       const queueStatus = result.passed ? "pending" : "skipped";
       // Datos de contacto para el outreach de v2: sólo los traen las fuentes
       // cuyo autor es contactable. Se setean siempre (a `null` si no hay) para
