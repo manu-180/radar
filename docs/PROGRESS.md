@@ -36,11 +36,17 @@ switch), documentado en [`DEPLOY.md`](./DEPLOY.md). El sistema arranca en modo
 - **Secretos generados** (CRON_SECRET, AUTH_SECRET, WEBHOOK_SECRET): se entregaron a
   Manuel por chat (no se commitean). Pegar en las env vars de Vercel al deployar.
 
-### Activación en curso (datos confirmados con Manuel — sesión 3)
-- **Supabase del radar:** proyecto ref **`eurhkkwhsolvixvwlgto`**. Manuel pasa un
-  Personal Access Token para aplicar las migraciones (vía MCP o Management API
-  `POST https://api.supabase.com/v1/projects/eurhkkwhsolvixvwlgto/database/query`).
-  Aplicar en orden `0001`→`0010` + `supabase/cron.sql` (con el `app_url` real).
+### Activación en curso (sesión 3)
+- **Supabase del radar:** proyecto ref **`eurhkkwhsolvixvwlgto`**.
+  - ✅ **MCP `supabase-radar` configurado** en `~/.claude.json` (global, persiste
+    entre sesiones; reiniciar Claude Code para que cargue).
+  - ✅ **v1 ya estaba aplicada** (tablas leads/sources/runs/settings/keywords/
+    notifications + RPCs claim_*).
+  - ✅ **Migraciones 0009 + 0010 aplicadas y verificadas** (vía Management API):
+    tablas `conversations`/`messages` ✓, función `claim_leads_to_engage` ✓,
+    `outreach_enabled=false` (shadow) ✓, Bluesky 17 queries (con "página web") ✓.
+  - Pendiente: correr `supabase/cron.sql` con el `app_url` real (post-deploy) +
+    guardar `cron_secret`/`webhook_secret` en el Vault.
 - **WhatsApp = reusar la Evolution API de apex-leads** (misma de Railway). Verificado:
   el cliente del radar (`lib/notify/evolution.ts`) usa exactamente la misma forma
   (`POST /message/sendText/{instancia}`, header `apikey`) → reuse drop-in.
