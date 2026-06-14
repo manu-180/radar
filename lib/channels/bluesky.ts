@@ -59,10 +59,32 @@ const CONVOS_LIMIT = 100;
 interface Session {
   accessJwt: string;
   did: string;
+  /** Host del PDS real de la cuenta (no el entryway): por acá se proxea el chat. */
+  pdsHost: string;
   expiresAt: number;
 }
 
 let cachedSession: Session | null = null;
+
+/**
+ * Extrae el host del PDS real de la cuenta desde el `didDoc` que devuelve
+ * `createSession`. Las cuentas de la red de Bluesky NO viven en `bsky.social`
+ * (su *entryway*) sino en hosts `*.host.bsky.network`; el chat service sólo se
+ * proxea bien a través del PDS real. Si se usa el entryway, los métodos
+ * `chat.bsky.*` devuelven 501 (MethodNotImplemented). Devuelve `null` si el
+ * `didDoc` no trae el endpoint, para caer al `PDS_HOST` por defecto.
+ */
+function pdsHostFromDidDoc(
+  didDoc:
+    | { service?: Array<{ id?: string; type?: string; serviceEndpoint?: string }> }
+    | undefined,
+): string | null {
+  const svc = didDoc?.service?.find(
+    (s) => s.id === "#atproto_pds" || s.type === "AtprotoPersonalDataServer",
+  );
+  const endpoint = svc?.serviceEndpoint;
+  return typeof endpoint === "string" && endpoint.startsWith("http") ? endpoint : null;
+}
 
 /**
  * Marca por convo del último mensaje procesado (su `sentAt` ISO). Evita
@@ -101,6 +123,9 @@ async function getSession(force = false): Promise<Session> {
   const data = (await response.json()) as {
     accessJwt?: string;
     did?: string;
+    didDoc?: {
+      service?: Array<{ id?: string; type?: string; serviceEndpoint?: string }>;
+    };
   };
   if (!data.accessJwt || !data.did) {
     throw new Error(
@@ -108,12 +133,15 @@ async function getSession(force = false): Promise<Session> {
     );
   }
 
+  // El chat se proxea por el PDS real de la cuenta, no por el entryway.
+  const pdsHost = pdsHostFromDidDoc(data.didDoc) ?? PDS_HOST;
   cachedSession = {
     accessJwt: data.accessJwt,
     did: data.did,
+    pdsHost,
     expiresAt: now + SESSION_TTL_MS,
   };
-  logger.info("Sesión de Bluesky creada", { did: data.did });
+  logger.info("Sesión de Bluesky creada", { did: data.did, pdsHost });
   return cachedSession;
 }
 
@@ -131,7 +159,7 @@ async function chatXrpc<T>(
   init: { query?: Record<string, string | string[]>; body?: unknown } = {},
 ): Promise<T> {
   async function attempt(session: Session): Promise<Response> {
-    let url = `${PDS_HOST}/xrpc/${nsid}`;
+    let url = `${session.pdsHost}/xrpc/${nsid}`;
     if (init.query) {
       const params = new URLSearchParams();
       for (const [k, v] of Object.entries(init.query)) {
