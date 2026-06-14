@@ -1,0 +1,31 @@
+{
+  "name": "radar-firehose-worker",
+  "version": "1.0.0",
+  "description": "Always-on Bluesky Jetstream (firehose) consumer for the Radar app (Railway service)",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --platform=node --format=esm --target=node20 --packages=external --outfile=dist/index.mjs",
+    "prestart": "npm run build",
+    "start": "node dist/index.mjs",
+    "dev": "esbuild src/index.ts --bundle --platform=node --format=esm --target=node20 --packages=external --outfile=dist/index.mjs --watch=forever & node --watch-path=dist dist/index.mjs",
+    "typecheck": "tsc --noEmit",
+    "build:test": "esbuild src/jetstream.test.ts src/lead.test.ts --bundle --platform=node --format=esm --target=node20 --packages=external --outdir=dist/test --out-extension:.js=.mjs",
+    "pretest": "npm run build:test",
+    "test": "node --test dist/test/*.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.105.4",
+    "franc-min": "^6.2.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/ws": "^8.5.12",
+    "esbuild": "^0.24.0",
+    "tsx": "^4",
+    "typescript": "^5"
+  }
+}

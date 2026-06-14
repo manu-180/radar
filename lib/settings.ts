@@ -283,3 +283,66 @@ export async function loadAutopilotSettings(): Promise<AutopilotSettings> {
     playbook: parsePlaybook(byKey.get("agent_playbook")),
   };
 }
+
+// ─── Tope de costo de la IA (Capa 4) ─────────────────────────────────────────
+
+/** Tope de gasto por defecto del clasificador, en USD. */
+export const DEFAULT_CLASSIFIER_BUDGET_USD = 5;
+
+const CLASSIFIER_BUDGET_KEYS = [
+  "classifier_budget_usd",
+  "classifier_spend_baseline_usd",
+  "classifier_paused",
+] as const;
+
+/** Estado del presupuesto del clasificador, ya validado y con defaults. */
+export interface ClassifierBudget {
+  /**
+   * Tope de gasto en USD. `null` = ilimitado (clave ausente o `<= 0`), para
+   * cuando se quiera "dejarlo libre".
+   */
+  budgetUsd: number | null;
+  /**
+   * Gasto acumulado (USD) registrado al activar el tope. El gasto efectivo que
+   * cuenta contra el budget es `SUM(llm_cost_usd de los done) - baseline`.
+   */
+  spendBaselineUsd: number;
+  /** Kill-switch: si está en `true`, la clasificación está pausada. */
+  paused: boolean;
+}
+
+/** Coacciona un valor crudo a un número finito `>= 0`; cae a `fallback` si no. */
+function parseNonNegativeNumber(raw: unknown, fallback: number): number {
+  return typeof raw === "number" && Number.isFinite(raw) && raw >= 0
+    ? raw
+    : fallback;
+}
+
+/**
+ * Carga el estado del presupuesto del clasificador. Relee la tabla en cada
+ * corrida, así un cambio desde `/config` (subir el tope, despausar) impacta en
+ * la corrida siguiente sin redeploy.
+ */
+export async function loadClassifierBudget(): Promise<ClassifierBudget> {
+  const byKey = await readSettings(CLASSIFIER_BUDGET_KEYS);
+
+  const budgetRaw = byKey.get("classifier_budget_usd");
+  // Si la clave existe y es un número: `> 0` es el tope, `<= 0` = ilimitado
+  // (opt-out explícito). Si falta o es inválida, cae al tope por defecto: el cap
+  // es el default SEGURO, no "ilimitado" — así un olvido no deja la IA sin freno.
+  let budgetUsd: number | null;
+  if (typeof budgetRaw === "number" && Number.isFinite(budgetRaw)) {
+    budgetUsd = budgetRaw > 0 ? budgetRaw : null;
+  } else {
+    budgetUsd = DEFAULT_CLASSIFIER_BUDGET_USD;
+  }
+
+  return {
+    budgetUsd,
+    spendBaselineUsd: parseNonNegativeNumber(
+      byKey.get("classifier_spend_baseline_usd"),
+      0,
+    ),
+    paused: byKey.get("classifier_paused") === true,
+  };
+}

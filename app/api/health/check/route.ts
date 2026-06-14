@@ -156,6 +156,15 @@ async function checkSources(db: Db): Promise<Problem[]> {
 
 /** ¿Hay leads `pending` esperando a la IA hace más de 2 h? */
 async function checkBacklog(db: Db, now: number): Promise<Problem[]> {
+  // Si la clasificación está pausada a propósito (se alcanzó el tope de costo de
+  // la IA), un backlog de `pending` es esperado, no una falla: no se alerta.
+  const { data: pausedRow } = await db
+    .from("settings")
+    .select("value")
+    .eq("key", "classifier_paused")
+    .maybeSingle();
+  if (pausedRow?.value === true) return [];
+
   const since = new Date(now - BACKLOG_STALE_AFTER_MS).toISOString();
   const { count, error } = await db
     .from("leads")

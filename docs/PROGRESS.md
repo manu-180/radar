@@ -3,13 +3,40 @@
 > Estado vivo del trabajo. La arquitectura está en [`ARCHITECTURE.md`](./ARCHITECTURE.md).
 > Una sesión nueva debe poder reconstruir TODO desde acá + el repo, sin el chat.
 
-**Última actualización:** 2026-06-14 (sesión 6: fuentes de alta intención — Freelancer ES + bypass de pre-filtro; rama `feat/high-intent-sources`)
+**Última actualización:** 2026-06-14 (sesión 7: firehose de Bluesky — app-side hecho + worker en construcción; sobre la rama `feat/high-intent-sources`)
 
 ## 🟢 ESTADO: EN VIVO EN PRODUCCIÓN (autopilot ON, cap 5/día)
 Desplegado en **https://radar-five-indol.vercel.app** (Vercel, auto-deploy desde
 `main`; Supabase `eurhkkwhsolvixvwlgto`; cron pg_cron con 7 jobs). `outreach_enabled=true`,
 `outreach_daily_cap=5`. Playbook con la oferta real de APEX. Detecta, clasifica,
 contacta por Bluesky, conversa y hace handoff por WhatsApp — todo solo.
+
+### Sesión 7 — Detección por FIREHOSE de Bluesky + filtro en capas (en curso)
+> Migrar la detección de Bluesky de **search-poll** a **firehose** (consumir todo
+> el stream de la red). Fuente de verdad completa: [`docs/FIREHOSE.md`](./FIREHOSE.md).
+> Commiteado en la rama `feat/high-intent-sources` (SIN mergear a `main`: el merge
+> es coordinado con la otra sesión — ver "Pendiente").
+
+- **App-side HECHO y verde** (lint/typecheck/test/build):
+  - `lib/filter/match.ts` (NEW): lógica pura del pre-filtro (sin `server-only`/DB),
+    compartible con el worker. `prefilter.ts` ahora sólo carga keywords + re-exporta.
+  - Migración `0011_firehose_detection.sql`: vocabulario de intención es como
+    `lang='any'` (rescata posts cortos que franc no clasifica), settings del
+    presupuesto, y RPC `classifier_spend_total()`. **Aún NO aplicada a la DB.**
+  - **Kill-switch de US$5** en `/api/process` + `loadClassifierBudget` en
+    `settings.ts` (el cap es el default seguro; `0`/negativo = ilimitado).
+    `health/check` no alarma "ai-backlog" durante una pausa intencional.
+- **Worker `worker-firehose/`**: en construcción (agente). Consume el Jetstream,
+  corre Capas 1-2 e inserta `leads` directo en Supabase (Approach A).
+- **Decisiones**: solo español · tope US$5 acumulado duro · worker dedicado en
+  Railway · Capa 3 (embeddings) diferida (YAGNI).
+- **⚠️ Aplicar `0011` JUNTO con el deploy de esta rama, no antes**: las keywords
+  `any` amplían también el search-poll actual y, sin el kill-switch deployado, el
+  costo de IA quedaría sin freno en prod.
+- **Pendiente**: terminar/verificar el worker · aplicar `0011` al deployar · crear
+  el servicio en Railway + env (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`) ·
+  apagar el search-poll (`update sources set enabled=false where slug='bluesky'`)
+  recién con el worker verificado en vivo.
 
 ### Sesión 6 — Fuentes de alta intención: Freelancer (ES) + bypass de pre-filtro
 Rama **`feat/high-intent-sources`** (NO mergeada a `main`; coordinar el merge con la

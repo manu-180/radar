@@ -45,8 +45,13 @@ import {
 import { finishRun, startRun } from "@/lib/db/runs";
 import { env } from "@/lib/env";
 import { createLogger, type Logger } from "@/lib/logger";
+import { sendWhatsApp } from "@/lib/notify/evolution";
 import { verifyCronSecret } from "@/lib/security";
-import { loadProcessSettings, type ProcessSettings } from "@/lib/settings";
+import {
+  loadClassifierBudget,
+  loadProcessSettings,
+  type ProcessSettings,
+} from "@/lib/settings";
 import { getAdminClient } from "@/lib/supabase/admin";
 import type { Tables } from "@/types/database";
 
@@ -69,6 +74,47 @@ const log = createLogger({ route: "process" });
 /** Atajo para responder JSON con un código de estado. */
 function json(body: unknown, status: number): Response {
   return Response.json(body, { status });
+}
+
+/** Pausa la clasificación (kill-switch del presupuesto de la Capa 4). */
+async function pauseClassifier(
+  db: ReturnType<typeof getAdminClient>,
+): Promise<void> {
+  const { error } = await db.from("settings").upsert(
+    { key: "classifier_paused", value: true, updated_at: new Date().toISOString() },
+    { onConflict: "key" },
+  );
+  if (error) {
+    log.error("No se pudo pausar el clasificador", { error: error.message });
+  }
+}
+
+/** Texto del aviso de WhatsApp cuando se alcanza el tope de presupuesto. */
+function buildBudgetMessage(effectiveUsd: number, budgetUsd: number): string {
+  return [
+    "💸 *Radar* — tope de IA alcanzado",
+    "",
+    `El clasificador llegó al tope de USD ${budgetUsd.toFixed(2)} ` +
+      `(gastó ~USD ${effectiveUsd.toFixed(2)}).`,
+    "Pausé la clasificación: los leads nuevos quedan en cola sin clasificar y " +
+      "el firehose deja de encolar.",
+    "",
+    `Para reanudar, subí el tope o ponelo en ilimitado desde ${env.APP_URL}/config.`,
+  ].join("\n");
+}
+
+/** Avisa al dueño que se alcanzó el tope. Best-effort: no aborta la corrida. */
+async function alertBudgetReached(
+  effectiveUsd: number,
+  budgetUsd: number,
+): Promise<void> {
+  try {
+    await sendWhatsApp(env.OWNER_WHATSAPP, buildBudgetMessage(effectiveUsd, budgetUsd));
+  } catch (err) {
+    log.error("No se pudo avisar el tope de presupuesto del clasificador", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
 }
 
 /**
@@ -319,6 +365,38 @@ export async function POST(request: Request): Promise<Response> {
 
   const drainDepth = readDrainDepth(request);
   const db = getAdminClient();
+
+  // Kill-switch de presupuesto (Capa 4). Si el gasto del clasificador llegó al
+  // tope, no se clasifica nada: los leads quedan `pending` (parqueados, no se
+  // pierden) y el firehose deja de encolar. Se avisa una sola vez al cruzarlo.
+  const budget = await loadClassifierBudget();
+  if (budget.paused) {
+    return json({ ok: true, skipped: "budget-paused" }, 200);
+  }
+  if (budget.budgetUsd !== null) {
+    const { data: spentTotal, error: spendErr } = await db.rpc(
+      "classifier_spend_total",
+    );
+    if (spendErr) {
+      log.error("No se pudo leer el gasto del clasificador; se continúa", {
+        error: spendErr.message,
+      });
+    } else {
+      const effective = Math.max(
+        0,
+        Number(spentTotal ?? 0) - budget.spendBaselineUsd,
+      );
+      if (effective >= budget.budgetUsd) {
+        await pauseClassifier(db);
+        await alertBudgetReached(effective, budget.budgetUsd);
+        log.warn("Tope de presupuesto alcanzado; clasificación en pausa", {
+          effective,
+          budgetUsd: budget.budgetUsd,
+        });
+        return json({ ok: true, skipped: "budget-reached", effective }, 200);
+      }
+    }
+  }
 
   const runId = await startRun("process");
   const runLog = log.child({ runId, drainDepth });

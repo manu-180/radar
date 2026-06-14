@@ -48,10 +48,12 @@ vi.mock("@/lib/supabase/admin", () => ({
 const {
   loadProcessSettings,
   loadNotifySettings,
+  loadClassifierBudget,
   notifyRuleSchema,
   DEFAULT_NOTIFY_RULE,
   DEFAULT_MAX_NOTIFICATIONS_PER_RUN,
   DEFAULT_FEEDBACK_EXAMPLES_COUNT,
+  DEFAULT_CLASSIFIER_BUDGET_USD,
 } = await import("../lib/settings");
 
 /** Apunta el cliente mockeado a un set de filas de `settings` (o a un error). */
@@ -175,5 +177,48 @@ describe("loadNotifySettings", () => {
     expect((await loadNotifySettings()).maxNotificationsPerRun).toBe(
       DEFAULT_MAX_NOTIFICATIONS_PER_RUN,
     );
+  });
+});
+
+describe("loadClassifierBudget", () => {
+  it("sin la clave, usa el tope por defecto (cap seguro, NO ilimitado)", async () => {
+    const budget = await loadClassifierBudget();
+    expect(budget.budgetUsd).toBe(DEFAULT_CLASSIFIER_BUDGET_USD);
+    expect(budget.paused).toBe(false);
+    expect(budget.spendBaselineUsd).toBe(0);
+  });
+
+  it("respeta un tope explícito", async () => {
+    withSettings([{ key: "classifier_budget_usd", value: 12 }]);
+    expect((await loadClassifierBudget()).budgetUsd).toBe(12);
+  });
+
+  it("trata 0 como ilimitado (opt-out explícito)", async () => {
+    withSettings([{ key: "classifier_budget_usd", value: 0 }]);
+    expect((await loadClassifierBudget()).budgetUsd).toBeNull();
+  });
+
+  it("trata un negativo como ilimitado", async () => {
+    withSettings([{ key: "classifier_budget_usd", value: -5 }]);
+    expect((await loadClassifierBudget()).budgetUsd).toBeNull();
+  });
+
+  it("un tope no numérico cae al default", async () => {
+    withSettings([{ key: "classifier_budget_usd", value: "muchos" }]);
+    expect((await loadClassifierBudget()).budgetUsd).toBe(
+      DEFAULT_CLASSIFIER_BUDGET_USD,
+    );
+  });
+
+  it("lee el flag de pausa", async () => {
+    withSettings([{ key: "classifier_paused", value: true }]);
+    expect((await loadClassifierBudget()).paused).toBe(true);
+  });
+
+  it("lee el baseline de gasto y cae a 0 si es inválido", async () => {
+    withSettings([{ key: "classifier_spend_baseline_usd", value: 3.5 }]);
+    expect((await loadClassifierBudget()).spendBaselineUsd).toBe(3.5);
+    withSettings([{ key: "classifier_spend_baseline_usd", value: "x" }]);
+    expect((await loadClassifierBudget()).spendBaselineUsd).toBe(0);
   });
 });
