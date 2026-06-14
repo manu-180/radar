@@ -95,8 +95,18 @@ switch), documentado en [`DEPLOY.md`](./DEPLOY.md). El sistema arranca en modo
 - **Bugfix:** `app/api/health/check/route.ts → checkSources` ahora sólo marca
   "source-down" en fuentes **habilitadas** (una apagada a propósito no está caída;
   antes quedaba marcada para siempre y mandaba recordatorios cada 6 h).
-- **⏳ Único pendiente para empezar a contactar:** prender `outreach_enabled` desde
-  `/config` cuando Manuel quiera (hoy en shadow; recomendado mirar leads unos días).
+### 🟢 LIVE — AUTOPILOT ENCENDIDO (sesión 4)
+- **`outreach_enabled = true`** + **`outreach_daily_cap = 5`** (arranque conservador;
+  subir cuando el primer puñado de conversaciones reales se vea bien).
+- **Playbook cargado con la oferta real de APEX** (en `settings.agent_playbook`):
+  landing $300k · web interactiva c/backend $600k · e-commerce/plataforma $900k ·
+  3 cuotas sin interés · **boceto gratis primero** · plazo hasta 15 días ·
+  ejemplos por nivel (handy/bylumainvita/assistify; tallermarcelo/botlode;
+  moda/ponchospanish) · web theapexweb.com. (Editable desde `/config`.)
+- **Pendiente de Manuel:** poner las DMs de Bluesky en "Everybody"
+  (Chat → engranaje → Permitir mensajes nuevos de → Todos), si no Bluesky no entrega.
+- El código `DEFAULT_PLAYBOOK` (fallback) sigue con el genérico; la verdad vive en
+  la DB. Ver la oferta real en memoria [reference-apex-oferta].
 
 ### Sesión 2 — hardening (sin pasos manuales pendientes en el código)
 - **Webhook secret con fallback por query param** (`verifyWebhookSecret`): además
