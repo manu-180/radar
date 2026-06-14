@@ -14,8 +14,9 @@ contacta por Bluesky, conversa y hace handoff por WhatsApp — todo solo.
 ### Sesión 7 — Detección por FIREHOSE de Bluesky + filtro en capas (en curso)
 > Migrar la detección de Bluesky de **search-poll** a **firehose** (consumir todo
 > el stream de la red). Fuente de verdad completa: [`docs/FIREHOSE.md`](./FIREHOSE.md).
-> Commiteado y pusheado a `origin/feat/high-intent-sources` — **CI verde** (jobs
-> `verify` + `worker`). SIN mergear a `main`: el merge es coordinado (ver "Pendiente").
+> ✅ **DEPLOYADO A PROD**: mergeado a `main` (fast-forward) → Vercel prod READY con
+> el cap de US$5; migración `0011` aplicada al DB (baseline = gasto actual ⇒ el cap
+> no pausa). Worker autocontenido (vendoreado) listo para Railway. CI verde.
 
 - **App-side HECHO y verde** (lint/typecheck/test/build):
   - `lib/filter/match.ts` (NEW): lógica pura del pre-filtro (sin `server-only`/DB),
@@ -30,13 +31,14 @@ contacta por Bluesky, conversa y hace handoff por WhatsApp — todo solo.
   corre Capas 1-2 e inserta `leads` directo en Supabase (Approach A).
 - **Decisiones**: solo español · tope US$5 acumulado duro · worker dedicado en
   Railway · Capa 3 (embeddings) diferida (YAGNI).
-- **⚠️ Aplicar `0011` JUNTO con el deploy de esta rama, no antes**: las keywords
-  `any` amplían también el search-poll actual y, sin el kill-switch deployado, el
-  costo de IA quedaría sin freno en prod.
-- **Pendiente**: terminar/verificar el worker · aplicar `0011` al deployar · crear
-  el servicio en Railway + env (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`) ·
-  apagar el search-poll (`update sources set enabled=false where slug='bluesky'`)
-  recién con el worker verificado en vivo.
+- ✅ **`0011` aplicado junto con el deploy** (no antes): el cap quedó vivo al mismo
+  tiempo que las keywords ampliadas, así el costo de IA está acotado a US$5
+  (baseline = 0.1745, gasto histórico real; margen casi completo).
+- **Pendiente (sólo cuentas del usuario)**: crear el servicio en Railway (Root
+  Directory = `worker-firehose`, ya visible en `main`) + env (`SUPABASE_URL`,
+  `SUPABASE_SERVICE_ROLE_KEY`) y deployar · DMs de Bluesky en "Everybody" · cuando
+  el worker esté verificado en vivo, apagar el search-poll (`update sources set
+  enabled=false where slug='bluesky'`).
 
 ### Sesión 6 — Fuentes de alta intención: Freelancer (ES) + bypass de pre-filtro
 Rama **`feat/high-intent-sources`** (NO mergeada a `main`; coordinar el merge con la
