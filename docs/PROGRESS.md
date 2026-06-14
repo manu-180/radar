@@ -61,9 +61,16 @@ switch), documentado en [`DEPLOY.md`](./DEPLOY.md). El sistema arranca en modo
 - **Config de deploy confirmada:** Anthropic key NUEVA (provista; va sólo a Vercel,
   no se commitea) · `EVOLUTION_INSTANCE=wa-manu-celu-viejo` ·
   `EVOLUTION_API_URL=https://evolution-api-production-3571.up.railway.app`.
-- **Inputs que faltan de Manuel para deployar:** Bluesky handle + app password ·
-  DASHBOARD_PASSWORD · OWNER_WHATSAPP (+549…) · OK para deploy en Vercel.
-  (Las claves de Supabase URL/anon/service las saco yo con el token vía Management API.)
+- **Deploy en curso (sesión 3):**
+  - ✅ Código en GitHub: `feat/autopilot` y `main` apuntan al mismo commit (v2).
+    `main` quedó con la v2 (FF) → Vercel deploya la versión correcta al importar.
+  - ✅ Datos de deploy resueltos: OWNER_WHATSAPP `+5491134272488` ·
+    DASHBOARD_PASSWORD `654321` · Anthropic key nueva · Evolution `wa-manu-celu-viejo`.
+  - ⏳ **Pendiente (Manuel):** importar `manu-180/radar` en Vercel + pegar el bloque
+    de env vars (armado en chat) + deployar → pasarme la URL.
+  - ⏳ **Pendiente (yo, post-deploy):** correr `supabase/cron.sql` con la URL real +
+    guardar `cron_secret`/`webhook_secret` en el Vault de Supabase + verificar.
+  - ⏳ **Opcional:** Bluesky (handle + app password) para sumar ese canal de outreach.
 
 ### Sesión 2 — hardening (sin pasos manuales pendientes en el código)
 - **Webhook secret con fallback por query param** (`verifyWebhookSecret`): además
