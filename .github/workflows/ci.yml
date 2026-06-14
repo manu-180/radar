@@ -35,3 +35,36 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  # El worker del firehose es un paquete aparte (Railway), fuera del build de la
+  # app. Importa lib/filter/* del repo, así que un cambio en esos módulos podría
+  # romperlo sin que el job de arriba lo note: este job lo cubre por separado.
+  worker:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: worker-firehose
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: worker-firehose/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
