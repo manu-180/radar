@@ -61,16 +61,27 @@ switch), documentado en [`DEPLOY.md`](./DEPLOY.md). El sistema arranca en modo
 - **Config de deploy confirmada:** Anthropic key NUEVA (provista; va sólo a Vercel,
   no se commitea) · `EVOLUTION_INSTANCE=wa-manu-celu-viejo` ·
   `EVOLUTION_API_URL=https://evolution-api-production-3571.up.railway.app`.
-- **Deploy en curso (sesión 3):**
-  - ✅ Código en GitHub: `feat/autopilot` y `main` apuntan al mismo commit (v2).
-    `main` quedó con la v2 (FF) → Vercel deploya la versión correcta al importar.
-  - ✅ Datos de deploy resueltos: OWNER_WHATSAPP `+5491134272488` ·
-    DASHBOARD_PASSWORD `654321` · Anthropic key nueva · Evolution `wa-manu-celu-viejo`.
-  - ⏳ **Pendiente (Manuel):** importar `manu-180/radar` en Vercel + pegar el bloque
-    de env vars (armado en chat) + deployar → pasarme la URL.
-  - ⏳ **Pendiente (yo, post-deploy):** correr `supabase/cron.sql` con la URL real +
-    guardar `cron_secret`/`webhook_secret` en el Vault de Supabase + verificar.
-  - ⏳ **Opcional:** Bluesky (handle + app password) para sumar ese canal de outreach.
+### ✅ DEPLOY COMPLETO — SISTEMA VIVO (sesión 3, en modo shadow)
+- **Producción:** https://radar-five-indol.vercel.app (Vercel, proyecto `radar`,
+  auto-deploy desde `main`). Dashboard: login con `DASHBOARD_PASSWORD`.
+- **Env vars** cargadas en Vercel (incluida Anthropic key nueva, Supabase, Evolution
+  `wa-manu-celu-viejo`, OWNER_WHATSAPP `+5491134272488`, secretos).
+- **Cron pg_cron:** 7 jobs activos apuntando a la URL de prod; `cron_secret` en el
+  Vault sincronizado con Vercel. Verificado: dispatch→poll→process→inbound corren
+  solos. Se limpió el job legacy `lead-detector-outreach`.
+- **Verificado end-to-end:** HackerNews detectó 384 leads en la primera corrida.
+- **2 bugs reales arreglados en esta sesión:**
+  1. `lib/env.ts` — APP_URL ahora deriva de `VERCEL_PROJECT_PRODUCTION_URL` (URL
+     pública estable); antes usaba `VERCEL_URL`, que está detrás de Deployment
+     Protection (401) y rompía el fan-out interno del dispatcher → 0 polls.
+  2. `lib/db/leads.ts` — `persistLeads` chunquea los `.in()`; antes un lote grande
+     (HN, cientos de items) excedía el largo de URL de PostgREST → 400 y se perdían
+     todos los leads de esa corrida.
+- **Estado:** `outreach_enabled=false` (shadow). Detecta, clasifica y **avisa al
+  dueño por WhatsApp**, pero NO contacta prospectos hasta que Manuel prenda el switch.
+- **⏳ Opcional pendiente:** (a) handle de Bluesky para activar ese canal (ya tengo
+  el app password `36fu-…`; falta `BLUESKY_IDENTIFIER` en Vercel). (b) Prender
+  `outreach_enabled` desde `/config` cuando Manuel quiera empezar a contactar.
 
 ### Sesión 2 — hardening (sin pasos manuales pendientes en el código)
 - **Webhook secret con fallback por query param** (`verifyWebhookSecret`): además
