@@ -79,9 +79,13 @@ switch), documentado en [`DEPLOY.md`](./DEPLOY.md). El sistema arranca en modo
      todos los leads de esa corrida.
 - **Estado:** `outreach_enabled=false` (shadow). Detecta, clasifica y **avisa al
   dueño por WhatsApp**, pero NO contacta prospectos hasta que Manuel prenda el switch.
-- **⏳ Opcional pendiente:** (a) handle de Bluesky para activar ese canal (ya tengo
-  el app password `36fu-…`; falta `BLUESKY_IDENTIFIER` en Vercel). (b) Prender
-  `outreach_enabled` desde `/config` cuando Manuel quiera empezar a contactar.
+- **Bluesky (canal de outreach):** cuenta resuelta y verificada —
+  `BLUESKY_IDENTIFIER=manunv.bsky.social` (login OK con el app password contra
+  `com.atproto.server.createSession`). Falta: cargar `BLUESKY_IDENTIFIER` +
+  `BLUESKY_APP_PASSWORD` en Vercel + redeploy, y poner las DMs de la cuenta en
+  "Everybody" (si no, no puede escribir a desconocidos).
+- **⏳ Para empezar a contactar:** prender `outreach_enabled` desde `/config`
+  cuando Manuel quiera (hoy en shadow; recomendado mirar leads unos días primero).
 
 ### Sesión 2 — hardening (sin pasos manuales pendientes en el código)
 - **Webhook secret con fallback por query param** (`verifyWebhookSecret`): además
