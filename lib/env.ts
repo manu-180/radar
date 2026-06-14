@@ -63,6 +63,11 @@ const schema = z.object({
     .url({ error: "APP_URL debe ser una URL válida" })
     .optional(),
   VERCEL_URL: z.string().min(1).optional(),
+  // Dominio de producción estable que Vercel inyecta solo (sin protocolo), ej.
+  // `radar-xxx.vercel.app`. A diferencia de VERCEL_URL (única por deploy y detrás
+  // de Deployment Protection → 401 en las llamadas internas), es pública y
+  // estable: la mejor base para APP_URL en producción.
+  VERCEL_PROJECT_PRODUCTION_URL: z.string().min(1).optional(),
 
   // --- Opcionales: credenciales de fuentes que requieren setup ---
   // Si faltan, esa fuente queda inerte pero la app arranca sin error.
@@ -111,10 +116,16 @@ function readSource(): Record<string, string | undefined> {
 /** Resuelve la URL base del deploy. En Vercel se deriva de `VERCEL_URL`. */
 function resolveAppUrl(raw: RawEnv): string {
   if (raw.APP_URL) return raw.APP_URL;
+  // En Vercel, preferir el dominio de producción estable y público por sobre
+  // VERCEL_URL: esta última es única por deploy y queda detrás de Deployment
+  // Protection (401), lo que rompe las llamadas internas como el fan-out del
+  // dispatcher (`${APP_URL}/api/poll/...`).
+  if (raw.VERCEL_PROJECT_PRODUCTION_URL)
+    return `https://${raw.VERCEL_PROJECT_PRODUCTION_URL}`;
   if (raw.VERCEL_URL) return `https://${raw.VERCEL_URL}`;
   throw new Error(
     "Falta la variable de entorno requerida: APP_URL " +
-      "(o VERCEL_URL, para derivarla automáticamente).",
+      "(o VERCEL_URL / VERCEL_PROJECT_PRODUCTION_URL, para derivarla automáticamente).",
   );
 }
 

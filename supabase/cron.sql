@@ -29,8 +29,8 @@
 
 do $$
 declare
-  -- URL base de la app. Cambiar por la URL de producción en el paso 33 (deploy).
-  app_url text := 'http://localhost:3000';
+  -- URL base de la app (producción en Vercel; alias público estable).
+  app_url text := 'https://radar-five-indol.vercel.app';
 
   -- Plantilla del comando de cada job: un POST cuyo header `x-cron-secret` se
   -- resuelve en tiempo de ejecución desde el Vault — nunca se persiste en la
@@ -60,7 +60,8 @@ begin
     'lead-detector-health',
     'lead-detector-engage',
     'lead-detector-followup',
-    'lead-detector-inbound'
+    'lead-detector-inbound',
+    'lead-detector-outreach'  -- legacy v1 (renombrado a engage); se limpia si aparece
   );
 
   -- 2) Polling — minutos :00, :20, :40. Dispara el dispatcher, que abre una
