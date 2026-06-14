@@ -55,9 +55,15 @@ switch), documentado en [`DEPLOY.md`](./DEPLOY.md). El sistema arranca en modo
   - `EVOLUTION_INSTANCE`: elegir una instancia `open`. Disponibles al 2026-06-13:
     `wa-sim-01`, `wa-sim-02`, `wa-manu-01`, `wa-manu-celu-viejo`, `wa-juli`,
     `wa-manu-prueba-celu-nuevo`. (Recomendado: una de repuesto, ej. `wa-sim-01`.)
-- **Inputs que faltan de Manuel:** token de Supabase · instancia Evolution a usar ·
-  Bluesky handle + app password · Anthropic API key (¿reusar la de apex o nueva?) ·
+- **IA premium:** el closer (`lib/ai/agent.ts → DEFAULT_AGENT_MODEL`) pasó de
+  Haiku a **`claude-sonnet-4-6`** (decisión de Manuel: inteligencia premium en la
+  venta, con buen costo). El clasificador de alto volumen sigue Haiku→Sonnet.
+- **Config de deploy confirmada:** Anthropic key NUEVA (provista; va sólo a Vercel,
+  no se commitea) · `EVOLUTION_INSTANCE=wa-manu-celu-viejo` ·
+  `EVOLUTION_API_URL=https://evolution-api-production-3571.up.railway.app`.
+- **Inputs que faltan de Manuel para deployar:** Bluesky handle + app password ·
   DASHBOARD_PASSWORD · OWNER_WHATSAPP (+549…) · OK para deploy en Vercel.
+  (Las claves de Supabase URL/anon/service las saco yo con el token vía Management API.)
 
 ### Sesión 2 — hardening (sin pasos manuales pendientes en el código)
 - **Webhook secret con fallback por query param** (`verifyWebhookSecret`): además

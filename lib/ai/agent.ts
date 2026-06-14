@@ -31,8 +31,15 @@ import type {
   MessageRole,
 } from "@/types/autopilot";
 
-/** Modelo por defecto del closer: barato y de sobra para una charla de venta. */
-export const DEFAULT_AGENT_MODEL = "claude-haiku-4-5";
+/**
+ * Modelo por defecto del closer: **Sonnet 4.6**. Esta es la conversación que
+ * representa al dueño ante el prospecto, así que prioriza la calidad de la
+ * inteligencia ("premium") manteniendo buen costo: es rápido y muy capaz para
+ * DMs de venta multi-turno, y el system prompt va cacheado (prompt caching).
+ * El clasificador de alto volumen sigue en Haiku→Sonnet por costo; acá, donde
+ * se juega la venta, va premium.
+ */
+export const DEFAULT_AGENT_MODEL = "claude-sonnet-4-6";
 
 /** Tope de tokens de salida: un mensaje de WhatsApp/DM es corto. */
 const MAX_TOKENS = 600;
