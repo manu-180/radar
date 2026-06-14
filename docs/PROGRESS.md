@@ -3,13 +3,56 @@
 > Estado vivo del trabajo. La arquitectura está en [`ARCHITECTURE.md`](./ARCHITECTURE.md).
 > Una sesión nueva debe poder reconstruir TODO desde acá + el repo, sin el chat.
 
-**Última actualización:** 2026-06-14 (sesión 5: LIVE en producción + fix del bug de DMs de Bluesky)
+**Última actualización:** 2026-06-14 (sesión 6: fuentes de alta intención — Freelancer ES + bypass de pre-filtro; rama `feat/high-intent-sources`)
 
 ## 🟢 ESTADO: EN VIVO EN PRODUCCIÓN (autopilot ON, cap 5/día)
 Desplegado en **https://radar-five-indol.vercel.app** (Vercel, auto-deploy desde
 `main`; Supabase `eurhkkwhsolvixvwlgto`; cron pg_cron con 7 jobs). `outreach_enabled=true`,
 `outreach_daily_cap=5`. Playbook con la oferta real de APEX. Detecta, clasifica,
 contacta por Bluesky, conversa y hace handoff por WhatsApp — todo solo.
+
+### Sesión 6 — Fuentes de alta intención: Freelancer (ES) + bypass de pre-filtro
+Rama **`feat/high-intent-sources`** (NO mergeada a `main`; coordinar el merge con la
+sesión de Bluesky). CI verde (lint/typecheck/test/build, 117 tests) + rama pusheada a
+origin → **preview en Vercel**. Único archivo compartido tocado: `app/api/poll/[source]/route.ts`
+(2 líneas aditivas).
+
+- **Decisión de mercado: español-only.** Manuel no opera en inglés todavía y APEX es un
+  producto AR/LatAm (precios en pesos, ejemplos AR, persona rioplatense). Inglés = Fase
+  futura (DolarApp/Wise USD + pricing USD + el bot ghostwriteando, y sólo en **canales
+  automáticos** —no en job-boards, donde auto-bid = ban).
+- **Bug de diseño detectado y resuelto:** el pre-filtro de keywords (pensado para cortar
+  ruido de fuentes sociales) tiraba leads reales de job-boards cuyo wording no matchea las
+  frases exactas. Síntoma en vivo: Bluesky 754 leads → **1** "hiring"; HN 437 → **0**. Fix:
+  propiedad **`skipPrefilter`** por fuente (`lib/sources/types.ts`) + helper **`decidePrefilter`**
+  (`lib/filter/prefilter.ts`); el poll route la respeta. Las fuentes job-board pasan directo
+  al clasificador Haiku (barato; cada post ya es "hiring").
+- **Freelancer activado (modelo notify):** `skipPrefilter: true` en el adapter. Freelancer no
+  tiene mensajería usable dentro de ToS → `contact_channel=null` → el lead **avisa a Manuel
+  por WhatsApp** con título + URL + `suggested_reply` (borrador de propuesta); Manuel licita a
+  mano. Auto-bid viola ToS (no se hace).
+- **Migración `0011_freelancer_es.sql`** (idempotente, forward-only): reorienta las queries de
+  Freelancer al español (`página web`, `tienda online`, `landing page`, `desarrollo web`, …).
+  **Falta aplicarla a la DB** (lo hace Claude cuando esté el token).
+- **Tests nuevos:** `test/freelancer.test.ts` (skipPrefilter, inerte sin token, modelo notify)
+  + casos de `decidePrefilter` en `test/prefilter.test.ts`.
+- **Objetivo 2 (canal de volumen) — análisis honesto:**
+  - **Reddit: dropeado** en español. r/forhire es ~95% inglés (leads que Manuel no puede
+    cerrar) y el source usa `reddit.com/.json` sin auth, bloqueado desde IPs de Vercel →
+    necesitaría upgrade a OAuth. Reactivable si se va a inglés.
+  - **X/Twitter: no.** API US$100+/mes, free tier sin search.
+  - **Instagram: no.** Sin API de búsqueda pública, anti-scraping agresivo, ToS.
+  - **Telegram grupos AR: candidato fuerte futuro.** Gratis, alta intención, canal automático
+    (el bot cierra 100% en español). Requiere verificar el worker MTProto de Railway.
+  - **Workana: sin vía gratis** (verificado: `?format=rss` da HTML, `/jobs/feed` 404, sin API
+    pública documentada). Sigue dependiendo de ScraperAPI (~US$40/mes) + parser HTML frágil.
+    **Gateado por decisión de presupuesto de Manuel** (no se implementó nada).
+- **Inputs pendientes de Manuel para activar Freelancer:**
+  1. Generar `FREELANCER_OAUTH_TOKEN` en developers.freelancer.com (puede requerir aprobación
+     de API de su lado — se sabrá al intentarlo) y cargarlo en Vercel (Preview + Production).
+  2. (Claude) Aplicar `0011_freelancer_es.sql` a la DB del radar vía MCP `supabase-radar`.
+  3. (Claude) Con el token cargado: disparar poll → verificar que los leads de Freelancer pasan
+     a `pending` (no `skipped`), se clasifican `hiring`, y llega el aviso por WhatsApp.
 
 ### Sesión 5 — LIVE + fix del canal Bluesky
 - **Bug real arreglado:** `lib/channels/bluesky.ts` proxeaba el chat por `bsky.social`
