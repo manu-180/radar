@@ -79,13 +79,24 @@ switch), documentado en [`DEPLOY.md`](./DEPLOY.md). El sistema arranca en modo
      todos los leads de esa corrida.
 - **Estado:** `outreach_enabled=false` (shadow). Detecta, clasifica y **avisa al
   dueño por WhatsApp**, pero NO contacta prospectos hasta que Manuel prenda el switch.
-- **Bluesky (canal de outreach):** cuenta resuelta y verificada —
-  `BLUESKY_IDENTIFIER=manunv.bsky.social` (login OK con el app password contra
-  `com.atproto.server.createSession`). Falta: cargar `BLUESKY_IDENTIFIER` +
-  `BLUESKY_APP_PASSWORD` en Vercel + redeploy, y poner las DMs de la cuenta en
-  "Everybody" (si no, no puede escribir a desconocidos).
-- **⏳ Para empezar a contactar:** prender `outreach_enabled` desde `/config`
-  cuando Manuel quiera (hoy en shadow; recomendado mirar leads unos días primero).
+- **Bluesky (canal de outreach):** ✅ credenciales cargadas en Vercel y
+  desplegadas (`BLUESKY_IDENTIFIER=manunv.bsky.social`). Source y channel
+  verificados en producción (poll 200, sin errores de auth). Recordatorio: tener
+  las DMs de la cuenta en "Everybody" para poder escribir a desconocidos.
+
+### ✅ VERIFICACIÓN COMPLETA (sesión 4) — todo verde
+- Redeploy con las vars de Bluesky activo en prod. Probado end-to-end:
+  poll/process/notify/engage/inbound/health corren; **health-check `healthy: true`**.
+- **WhatsApp confirmado**: el health-check mandó el aviso "recuperado" a
+  `OWNER_WHATSAPP` (Evolution OK).
+- **1166 leads** detectados, 35 clasificados, 1 "hiring" real. `outreach_enabled=false`.
+- **Reddit deshabilitado** (`sources.enabled=false`): sin credenciales, sólo
+  generaba errores y falsas alarmas. Re-habilitable si se agregan creds.
+- **Bugfix:** `app/api/health/check/route.ts → checkSources` ahora sólo marca
+  "source-down" en fuentes **habilitadas** (una apagada a propósito no está caída;
+  antes quedaba marcada para siempre y mandaba recordatorios cada 6 h).
+- **⏳ Único pendiente para empezar a contactar:** prender `outreach_enabled` desde
+  `/config` cuando Manuel quiera (hoy en shadow; recomendado mirar leads unos días).
 
 ### Sesión 2 — hardening (sin pasos manuales pendientes en el código)
 - **Webhook secret con fallback por query param** (`verifyWebhookSecret`): además
