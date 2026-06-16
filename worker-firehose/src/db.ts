@@ -13,10 +13,20 @@
  */
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import WebSocket from "ws";
 
 import type { Keyword } from "./filter/match";
 
 import type { LeadRow } from "./types";
+
+// supabase-js inicializa un RealtimeClient al construir el cliente, y en Node < 22
+// ese cliente exige un `WebSocket` global (Node 20 —el runtime de Railway— no lo
+// trae nativo). El worker no usa realtime, pero la construcción es eager: sin un
+// WebSocket global, `createClient` lanza y el worker crashea al arrancar. Le
+// proveemos `ws` (ya es dependencia para el Jetstream).
+if (typeof (globalThis as { WebSocket?: unknown }).WebSocket === "undefined") {
+  (globalThis as { WebSocket?: unknown }).WebSocket = WebSocket;
+}
 
 /**
  * Crea el cliente admin del worker (service role, sin sesión persistida).
