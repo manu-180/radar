@@ -3,7 +3,37 @@
 > Estado vivo del trabajo. La arquitectura está en [`ARCHITECTURE.md`](./ARCHITECTURE.md).
 > Una sesión nueva debe poder reconstruir TODO desde acá + el repo, sin el chat.
 
-**Última actualización:** 2026-06-14 (sesión 7: firehose de Bluesky — app-side hecho + worker en construcción; sobre la rama `feat/high-intent-sources`)
+**Última actualización:** 2026-06-16 (sesión 8: worker firehose VIVO en Railway + MCPs de Freelancer y Railway operativos)
+
+### Sesión 8 — Worker firehose LIVE en Railway + MCPs (Freelancer, Railway)
+- **Ramas mergeadas:** `feat/high-intent-sources` y `feat/autopilot` ya están en
+  `main` (la primera era superconjunto de la segunda). No queda nada colgando.
+- **Worker firehose VIVO en Railway** (servicio `radar`, proyecto
+  `beautiful-kindness` id `d2a418d8-…`, env production `f91a6a5b-…`):
+  - Estaba **FAILED** (faltaba Root Directory) → luego **CRASHED** al arrancar.
+  - **Bug arreglado** (`worker-firehose/src/db.ts`): supabase-js construye un
+    RealtimeClient eager que en **Node 20** (runtime de Railway) exige `WebSocket`
+    global, ausente → crash al crear el cliente. Fix: asignar `ws` (ya dependencia
+    del Jetstream) a `globalThis.WebSocket`. Commit `406d178`.
+  - **Verificado VIVO:** `● Online`, `Keywords recargadas count=85` (DB OK),
+    `Jetstream conectado`, procesando ~2000 posts/min (descarta por lang/keywords),
+    `discardedPaused=0` (kill-switch no pausado). Root Directory `/worker-firehose`
+    + `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` ya estaban cargadas.
+  - **Gotcha Railway:** el primer build se trabó en el builder (no es el código);
+    se destrabó con un commit nuevo (auto-deploy desde `main`). `railway redeploy`
+    no sirve si hay un build en curso.
+- **MCP Freelancer (`freelancer-mcp/`) ACTIVO:** token OAuth cargado en
+  `~/.claude.json`. `freelancer_whoami` → `manunv97` (id 93275098). Búsqueda y
+  reads verificados en vivo. Writes (bid/mensaje) gateados por aprobación + tope.
+- **MCP Railway operativo:** estaba bloqueado por el hook de health-check de ECC
+  que hacía `spawn("railway")` sin shell (Windows no resuelve `.cmd`). Fix:
+  apuntar el `command` del MCP al `.exe` real
+  (`…\npm\node_modules\@railway\cli\bin\railway.exe`) en `~/.claude.json`.
+- **Pendiente (decisión de Manuel):** apagar el search-poll de Bluesky ahora que el
+  firehose está verificado vivo (`update sources set enabled=false where
+  slug='bluesky'`) — evita detección duplicada (dedup ya lo cubre, pero es waste).
+- **Freelancer en el radar:** `FREELANCER_OAUTH_TOKEN` ya cargado en Vercel (dicho
+  por Manuel) → la fuente Freelancer del radar queda activa con queries ES (0012).
 
 ## 🟢 ESTADO: EN VIVO EN PRODUCCIÓN (autopilot ON, cap 5/día)
 Desplegado en **https://radar-five-indol.vercel.app** (Vercel, auto-deploy desde
