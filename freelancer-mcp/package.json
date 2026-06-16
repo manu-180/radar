@@ -1,0 +1,25 @@
+{
+  "name": "freelancer-mcp",
+  "version": "1.0.0",
+  "description": "MCP server para operar Freelancer.com desde Claude Code: buscar proyectos, postular bids (con aprobación), y leer/responder mensajes. Read libre; los writes (bid/mensaje) van gateados por aprobación humana y a ritmo humano.",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --platform=node --format=esm --target=node20 --packages=external --outfile=dist/index.mjs",
+    "prestart": "npm run build",
+    "start": "node dist/index.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "esbuild": "^0.24.2",
+    "typescript": "^5.7.2"
+  }
+}
