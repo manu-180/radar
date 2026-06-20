@@ -25,7 +25,7 @@ export function SiteCredit() {
         <a
           href="https://www.theapexweb.com"
           target="_blank"
-          rel="noopener"
+          rel="noopener nofollow"
           className="group inline-flex items-center gap-2 font-mono text-[11px] leading-none tracking-wide text-[var(--muted)] transition-colors hover:text-[var(--accent)]"
         >
           <span
